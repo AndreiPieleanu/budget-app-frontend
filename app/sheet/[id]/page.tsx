@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import {Sankey, Tooltip} from "recharts";
 import {authFetch} from "@/app/helpers/helpers";
+import {useSnackbar} from "notistack";
 
 type Source = {
     id: number;
@@ -31,6 +32,9 @@ export default function SheetPage() {
 
     const [showGraph, setShowGraph] = useState(false);
 
+    const [sheetName, setSheetName] = useState("");
+    const { enqueueSnackbar } = useSnackbar();
+
     const loadSources = useCallback(() => {
         authFetch(`sources/sheet/${id}`)
             .then(res => res.json())
@@ -38,8 +42,24 @@ export default function SheetPage() {
     }, [id]);
 
     useEffect(() => {
-        loadSources();
-    }, [id]);
+        const loadPage = async () => {
+            try {
+                loadSources();
+
+                const res = await authFetch(`sheets/${id}`);
+                const data = await res.json();
+
+                setSheetName(data.name);
+
+            } catch (error: any) {
+                enqueueSnackbar(error.message, {
+                    variant: "error",
+                });
+            }
+        };
+
+        loadPage();
+    }, [id, loadSources]);
 
     const createSource = async () => {
         await authFetch(`sources`, {
@@ -193,7 +213,7 @@ export default function SheetPage() {
     const CustomTooltip = ({ active, payload }: any) => {
         if (!active || !payload?.length) return null;
 
-        const d = payload[0].payload;
+        const d = payload?.[0]?.payload ?? payload?.[0];
 
         return (
             <div className="bg-white p-2 border rounded shadow">
@@ -205,15 +225,18 @@ export default function SheetPage() {
     const Graph = ({sources}: { sources: Source[] }) => {
         const data = buildSankeyData(sources);
 
+        const nodeCount = data.nodes.length;
+        const width = Math.max(800, nodeCount * 80);
+
         return (
             <div className="overflow-x-auto">
-                <div style={{ width: 1100 }}>
+                <div style={{ width: width }}>
                     <Sankey
-                        width={800}
-                        height={400}
+                        width={width}
+                        height={500}
                         data={data}
                         node={<CustomNode />}
-                        nodePadding={40}
+                        nodePadding={10}
                         margin={{ left: 50, right: 150, top: 20, bottom: 20 }}
                     >
                         <Tooltip content={<CustomTooltip/>}/>
@@ -225,7 +248,7 @@ export default function SheetPage() {
 
     return (
         <div className="w-225 mx-auto p-8 space-y-6">
-            <h1 className="text-2xl font-bold">Sheet #{id}</h1>
+            <h1 className="text-2xl font-bold">Sheet {sheetName}</h1>
 
             {/* Add source */}
             <div className="flex gap-2">

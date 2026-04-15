@@ -8,6 +8,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import {authFetch} from "@/app/helpers/helpers";
+import {useSnackbar} from "notistack";
 
 type Sheet = {
     id: number;
@@ -18,6 +19,7 @@ export default function Home() {
     const [sheets, setSheets] = useState<Sheet[]>([]);
     const [name, setName] = useState("");
     const router = useRouter();
+    const { enqueueSnackbar } = useSnackbar();
 
     const loadSheets = () =>{
         authFetch(`sheets`)
@@ -25,7 +27,20 @@ export default function Home() {
             .then(setSheets);
     };
     useEffect(() => {
-        loadSheets();
+        const loadPage = async () => {
+            try {
+                const res = await authFetch(`sheets`);
+                const data = await res.json();
+
+                setSheets(data);
+            } catch (error: any) {
+                enqueueSnackbar(error.message, {
+                    variant: "error",
+                });
+            }
+        };
+
+        loadPage();
     }, []);
 
     const createSheet = async () => {
