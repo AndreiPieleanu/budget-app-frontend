@@ -10,7 +10,7 @@ export default function LoginPage() {
     const router = useRouter();
 
     const handleLogin = async () => {
-        const res = await fetch("http://localhost:8080/auth/login", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -30,7 +30,7 @@ export default function LoginPage() {
 
         setMessage("Logged in");
 
-        router.push("http://localhost:3000")
+        router.push("/")
     };
 
     return (
