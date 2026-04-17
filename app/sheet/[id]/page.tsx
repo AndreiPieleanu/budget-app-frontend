@@ -195,183 +195,351 @@ export default function SheetPage() {
                     width={width}
                     height={height}
                     fill={payload.color}
-                    rx={4}
+                    rx={10}
+                    opacity={0.95}
                 />
 
                 <text
-                    x={x + width + 8}
+                    x={x + width + 10}
                     y={y + height / 2}
-                    fontSize={12}
+                    fontSize={13}
                     dominantBaseline="middle"
-                    fill="#111"
+                    fill="#e2e8f0"
+                    fontWeight="600"
                 >
                     {payload.name} {payload.value}
                 </text>
             </g>
         );
     };
+
     const CustomTooltip = ({ active, payload }: any) => {
         if (!active || !payload?.length) return null;
 
         const d = payload?.[0]?.payload ?? payload?.[0];
 
         return (
-            <div className="bg-white p-2 border rounded shadow">
-                <p>{d.name}</p>
-                <p>Value: {d.value}</p>
+            <div className="rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-md px-4 py-3 shadow-2xl text-white min-w-[160px]">
+                <p className="font-semibold">{d.name}</p>
+                <p className="text-sm text-slate-300 mt-1">
+                    Amount: <span className="text-emerald-400 font-medium">€{d.value}</span>
+                </p>
             </div>
         );
     };
-    const Graph = ({sources}: { sources: Source[] }) => {
+
+    const Graph = ({ sources }: { sources: Source[] }) => {
         const data = buildSankeyData(sources);
 
         const nodeCount = data.nodes.length;
-        const width = Math.max(800, nodeCount * 80);
+        const width = Math.max(900, nodeCount * 90);
 
         return (
-            <div className="overflow-x-auto">
-                <div style={{ width: width }}>
-                    <Sankey
-                        width={width}
-                        height={500}
-                        data={data}
-                        node={<CustomNode />}
-                        nodePadding={10}
-                        margin={{ left: 50, right: 150, top: 20, bottom: 20 }}
-                    >
-                        <Tooltip content={<CustomTooltip/>}/>
-                    </Sankey>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
+                {/* Header */}
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-white">
+                        Money Flow Overview
+                    </h2>
+                    <p className="text-slate-300 mt-2">
+                        Visualize how income moves into expenses and savings.
+                    </p>
+                </div>
+
+                {/* Graph */}
+                <div className="overflow-x-auto rounded-2xl bg-slate-950/70 border border-white/5 p-4">
+                    <div style={{ width }}>
+                        <Sankey
+                            width={width}
+                            height={520}
+                            data={data}
+                            node={<CustomNode />}
+                            nodePadding={14}
+                            margin={{
+                                left: 50,
+                                right: 180,
+                                top: 20,
+                                bottom: 20,
+                            }}
+                            link={{ strokeOpacity: 0.35 }}
+                        >
+                            <Tooltip content={<CustomTooltip />} />
+                        </Sankey>
+                    </div>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="w-225 mx-auto p-8 space-y-6">
-            <h1 className="text-2xl font-bold">Sheet {sheetName}</h1>
+        <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+            <section className="max-w-6xl mx-auto px-6 py-16 space-y-8">
+                {/* Header */}
+                <div className="space-y-3">
+                    <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-2 bg-white/5">
+                        <div className="h-10 w-10 rounded-xl bg-emerald-500/20 grid place-items-center font-bold text-emerald-400">
+                            $€
+                        </div>
+                        <span className="font-semibold tracking-wide">
+                        EuroWise
+                    </span>
+                    </div>
 
-            {/* Add source */}
-            <div className="flex gap-2">
-                <Select value={type} onValueChange={(v: any) => setType(v)}>
-                    <SelectTrigger className="w-37.5">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="INCOME">Income</SelectItem>
-                        <SelectItem value="EXPENSE">Expense</SelectItem>
-                    </SelectContent>
-                </Select>
+                    <div>
+                        <h1 className="text-4xl md:text-5xl font-bold">
+                            {sheetName}
+                        </h1>
+                        <p className="text-slate-300 mt-2">
+                            Track income and expenses with clarity.
+                        </p>
+                    </div>
+                </div>
 
-                <Input
-                    placeholder="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
+                {/* Add Source */}
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
+                    <h2 className="text-xl font-semibold mb-4">
+                        Add Transaction
+                    </h2>
 
-                <Input
-                    type="number"
-                    placeholder="Amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    min={0}
-                />
+                    <div className="grid md:grid-cols-4 gap-3">
+                        <Select
+                            value={type}
+                            onValueChange={(v: any) => setType(v)}
+                        >
+                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                <SelectValue />
+                            </SelectTrigger>
 
-                <Button onClick={createSource}>Add</Button>
-            </div>
+                            <SelectContent>
+                                <SelectItem value="INCOME">
+                                    Income
+                                </SelectItem>
+                                <SelectItem value="EXPENSE">
+                                    Expense
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
 
-            {/* Table */}
-            <Button onClick={() => setShowGraph(true)}>
-                Generate Graph
-            </Button>
-            <Table className="table-fixed w-full">
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[40%]">Description</TableHead>
-                        <TableHead className="w-[20%]">Income</TableHead>
-                        <TableHead className="w-[20%]">Expense</TableHead>
-                        <TableHead className="w-[20%]">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
+                        <Input
+                            placeholder="Description"
+                            value={description}
+                            onChange={(e) =>
+                                setDescription(e.target.value)
+                            }
+                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                        />
 
-                <TableBody>
-                    {sources.map(src => (
-                        <TableRow key={src.id}>
-                            {editingId === src.id ? (
-                                <>
-                                    <TableCell>
-                                        <Input
-                                            value={editDescription}
-                                            onChange={(e) => setEditDescription(e.target.value)}
-                                        />
-                                    </TableCell>
+                        <Input
+                            type="number"
+                            placeholder="Amount"
+                            value={amount}
+                            onChange={(e) =>
+                                setAmount(e.target.value)
+                            }
+                            min={0}
+                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                        />
 
-                                    <TableCell colSpan={2}>
-                                        <div className="flex gap-2">
-                                            <Select
-                                                value={editType}
-                                                onValueChange={(v: any) => setEditType(v)}
-                                            >
-                                                <SelectTrigger className="w-30">
-                                                    <SelectValue/>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="INCOME">Income</SelectItem>
-                                                    <SelectItem value="EXPENSE">Expense</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                        <Button
+                            onClick={createSource}
+                            className="rounded-2xl bg-emerald-500 hover:bg-emerald-400 font-semibold"
+                        >
+                            Add
+                        </Button>
+                    </div>
+                </div>
 
-                                            <Input
-                                                type="number"
-                                                value={editAmount}
-                                                onChange={(e) => setEditAmount(e.target.value)}
-                                                min={0}
-                                            />
-                                        </div>
-                                    </TableCell>
+                {/* Actions */}
+                <div className="flex justify-end">
+                    <Button
+                        onClick={() => setShowGraph(true)}
+                        className="rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold"
+                    >
+                        Generate Graph
+                    </Button>
+                </div>
 
-                                    <TableCell className="flex gap-2">
-                                        <Button onClick={() => saveEdit(src.id)}>Save</Button>
-                                        <Button variant="outline" onClick={() => setEditingId(null)}>
-                                            Cancel
-                                        </Button>
-                                    </TableCell>
-                                </>
-                            ) : (
-                                <>
-                                    <TableCell>{src.description}</TableCell>
+                {/* Table */}
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl overflow-hidden">
+                    <Table className="w-full">
+                        <TableHeader>
+                            <TableRow className="border-white/10 hover:bg-transparent">
+                                <TableHead className="text-slate-400">
+                                    Description
+                                </TableHead>
+                                <TableHead className="text-slate-400">
+                                    Income
+                                </TableHead>
+                                <TableHead className="text-slate-400">
+                                    Expense
+                                </TableHead>
+                                <TableHead className="text-right text-slate-400">
+                                    Actions
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
 
-                                    <TableCell>
-                                        {src.type === "INCOME" ? src.amount : ""}
-                                    </TableCell>
+                        <TableBody>
+                            {sources.map((src) => (
+                                <TableRow
+                                    key={src.id}
+                                    className="border-white/10 hover:bg-white/5 transition"
+                                >
+                                    {editingId === src.id ? (
+                                        <>
+                                            <TableCell>
+                                                <Input
+                                                    value={
+                                                        editDescription
+                                                    }
+                                                    onChange={(e) =>
+                                                        setEditDescription(
+                                                            e.target
+                                                                .value
+                                                        )
+                                                    }
+                                                    className="bg-white/5 border-white/10 text-white"
+                                                />
+                                            </TableCell>
 
-                                    <TableCell>
-                                        {src.type === "EXPENSE" ? src.amount : ""}
-                                    </TableCell>
+                                            <TableCell colSpan={2}>
+                                                <div className="flex gap-2">
+                                                    <Select
+                                                        value={
+                                                            editType
+                                                        }
+                                                        onValueChange={(
+                                                            v: any
+                                                        ) =>
+                                                            setEditType(
+                                                                v
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
 
-                                    <TableCell className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => startEdit(src)}
-                                        >
-                                            Edit
-                                        </Button>
+                                                        <SelectContent>
+                                                            <SelectItem value="INCOME">
+                                                                Income
+                                                            </SelectItem>
+                                                            <SelectItem value="EXPENSE">
+                                                                Expense
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
 
-                                        <Button
-                                            variant="destructive"
-                                            onClick={() => deleteSource(src.id)}
-                                        >
-                                            Delete
-                                        </Button>
-                                    </TableCell>
-                                </>
-                            )}
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-            <div>
-                {showGraph && <Graph sources={sources}/>}
-            </div>
-        </div>
+                                                    <Input
+                                                        type="number"
+                                                        value={
+                                                            editAmount
+                                                        }
+                                                        onChange={(e) =>
+                                                            setEditAmount(
+                                                                e.target
+                                                                    .value
+                                                            )
+                                                        }
+                                                        min={0}
+                                                        className="bg-white/5 border-white/10 text-white"
+                                                    />
+                                                </div>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        onClick={() =>
+                                                            saveEdit(
+                                                                src.id
+                                                            )
+                                                        }
+                                                        className="rounded-xl bg-emerald-500 hover:bg-emerald-400"
+                                                    >
+                                                        Save
+                                                    </Button>
+
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            setEditingId(
+                                                                null
+                                                            )
+                                                        }
+                                                        className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <TableCell className="font-medium">
+                                                {
+                                                    src.description
+                                                }
+                                            </TableCell>
+
+                                            <TableCell className="text-emerald-400 font-semibold">
+                                                {src.type ===
+                                                "INCOME"
+                                                    ? `${src.amount}`
+                                                    : ""}
+                                            </TableCell>
+
+                                            <TableCell className="text-rose-400 font-semibold">
+                                                {src.type ===
+                                                "EXPENSE"
+                                                    ? `${src.amount}`
+                                                    : ""}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() =>
+                                                            startEdit(
+                                                                src
+                                                            )
+                                                        }
+                                                        className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                                    >
+                                                        Edit
+                                                    </Button>
+
+                                                    <Button
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            deleteSource(
+                                                                src.id
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </>
+                                    )}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Graph */}
+                {showGraph && (
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
+                        <h2 className="text-xl font-semibold mb-4">
+                            Overview Graph
+                        </h2>
+                        <Graph sources={sources} />
+                    </div>
+                )}
+            </section>
+        </main>
     );
 }
