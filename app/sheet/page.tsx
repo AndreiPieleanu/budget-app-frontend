@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
-import {authFetch} from "@/app/helpers/helpers";
+import {authFetch, getUserId} from "@/app/helpers/helpers";
 import {useSnackbar} from "notistack";
 
 type Sheet = {
@@ -21,8 +21,10 @@ export default function SheetPage() {
     const router = useRouter();
     const { enqueueSnackbar } = useSnackbar();
 
-    const loadSheets = () =>{
-        authFetch(`sheets`)
+    const loadSheets = async () => {
+        const token = localStorage.getItem("token");
+        const userId = await getUserId(token);
+        authFetch(`sheets/user/${userId}`)
             .then(res => res.json())
             .then(setSheets);
     };
@@ -45,10 +47,11 @@ export default function SheetPage() {
 
     const createSheet = async () => {
         if (!name) return;
-
+        const token = localStorage.getItem("token");
+        const userId = await getUserId(token);
         const res = await authFetch(`sheets`, {
             method: "POST",
-            body: {name},
+            body: {name, userId},
         });
 
         const newSheet = await res.json();
@@ -62,20 +65,22 @@ export default function SheetPage() {
         setEditName(sheet.name);
     };
     const saveEdit = async (sourceId: number) => {
+        const token = localStorage.getItem("token");
+        const userId = await getUserId(token);
         await authFetch(`sheets/${sourceId}`, {
             method: "PUT",
-            body: {name: editName},
+            body: {name: editName, userId: userId},
         });
 
         setEditingId(null);
-        loadSheets();
+        await loadSheets();
     };
 
     const deleteSheet = async (sheetId: number) => {
         await authFetch(`sheets/${sheetId}`, {
             method: "DELETE",
         });
-        loadSheets();
+        await loadSheets();
     };
 
 

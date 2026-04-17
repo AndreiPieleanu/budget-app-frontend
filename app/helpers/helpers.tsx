@@ -41,3 +41,16 @@ export async function authFetch(
 
     return response;
 }
+
+export async function getUserId(token: string){
+
+    const idRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ token }),
+    });
+    return await idRes.json();
+}
