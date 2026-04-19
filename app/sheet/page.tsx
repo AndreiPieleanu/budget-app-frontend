@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
-import {authFetch, getUserId} from "@/app/helpers/helpers";
+import {authFetch} from "@/app/helpers/helpers";
 import {useSnackbar} from "notistack";
 
 type Sheet = {
@@ -22,16 +22,14 @@ export default function SheetPage() {
     const { enqueueSnackbar } = useSnackbar();
 
     const loadSheets = async () => {
-        const token = localStorage.getItem("token");
-        const userId = await getUserId(token);
-        authFetch(`sheets/user/${userId}`)
+        authFetch(`sheets/me`)
             .then(res => res.json())
             .then(setSheets);
     };
     useEffect(() => {
         const loadPage = async () => {
             try {
-                const res = await authFetch(`sheets`);
+                const res = await authFetch(`sheets/me`);
                 const data = await res.json();
 
                 setSheets(data);
@@ -48,10 +46,9 @@ export default function SheetPage() {
     const createSheet = async () => {
         if (!name) return;
         const token = localStorage.getItem("token");
-        const userId = await getUserId(token);
         const res = await authFetch(`sheets`, {
             method: "POST",
-            body: {name, userId},
+            body: {name},
         });
 
         const newSheet = await res.json();
@@ -66,10 +63,9 @@ export default function SheetPage() {
     };
     const saveEdit = async (sourceId: number) => {
         const token = localStorage.getItem("token");
-        const userId = await getUserId(token);
         await authFetch(`sheets/${sourceId}`, {
             method: "PUT",
-            body: {name: editName, userId: userId},
+            body: {name: editName},
         });
 
         setEditingId(null);
