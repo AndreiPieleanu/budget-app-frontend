@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import {authFetch} from "@/app/helpers/helpers";
 import {useSnackbar} from "notistack";
+import Link from "next/link";
+import Logo from "@/components/ui/logo";
 
 type Sheet = {
     id: number;
@@ -86,13 +88,7 @@ export default function SheetPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                     <div>
-                        <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-2 bg-white/5 mb-4">
-                            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 grid place-items-center font-bold text-emerald-400">
-                                $€
-                            </div>
-                            <span className="font-semibold tracking-wide">EuroWise</span>
-                        </div>
-
+                        <Logo/>
                         <h1 className="text-4xl md:text-5xl font-bold">Your Sheets</h1>
                         <p className="text-slate-300 mt-2 max-w-xl">
                             Organize budgets, expenses, investments, and custom finance trackers.

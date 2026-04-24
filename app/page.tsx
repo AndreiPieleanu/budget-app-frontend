@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import SheetPage from "@/app/sheet/page";
+import {useRouter} from "next/navigation";
 
 export default function Home() {
 
     const [ready, setReady] = useState(false);
     const [hasToken, setHasToken] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         const token = localStorage.getItem("token");

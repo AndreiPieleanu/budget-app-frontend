@@ -14,6 +14,7 @@ import {
 import {Sankey, Tooltip} from "recharts";
 import {authFetch} from "@/app/helpers/helpers";
 import {useSnackbar} from "notistack";
+import Logo from "@/components/ui/logo";
 
 type Source = {
     id: number;
@@ -231,6 +232,16 @@ export default function SheetPage() {
     const Graph = ({ sources }: { sources: Source[] }) => {
         const data = buildSankeyData(sources);
 
+        const totalIncome = sources
+            .filter((s) => s.type === "INCOME")
+            .reduce((sum, s) => sum + Number(s.amount), 0);
+
+        const totalExpense = sources
+            .filter((s) => s.type === "EXPENSE")
+            .reduce((sum, s) => sum + Number(s.amount), 0);
+
+        const balance = Number((totalIncome - totalExpense).toFixed(2));
+
         const nodeCount = data.nodes.length;
         const width = Math.max(900, nodeCount * 90);
 
@@ -241,6 +252,7 @@ export default function SheetPage() {
                     <h2 className="text-2xl font-bold text-white">
                         Money Flow Overview
                     </h2>
+
                     <p className="text-slate-300 mt-2">
                         Visualize how income moves into expenses and savings.
                     </p>
@@ -267,6 +279,49 @@ export default function SheetPage() {
                         </Sankey>
                     </div>
                 </div>
+
+                {/* Summary */}
+                <div className="mt-6 grid sm:grid-cols-3 gap-4">
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                        <p className="text-sm text-slate-400">Income</p>
+                        <p className="text-xl font-bold text-emerald-400">
+                            €{totalIncome.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                        <p className="text-sm text-slate-400">Expenses</p>
+                        <p className="text-xl font-bold text-rose-400">
+                            €{totalExpense.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+                        <p className="text-sm text-slate-400">
+                            {balance >= 0 ? "Remaining" : "Deficit"}
+                        </p>
+
+                        <p
+                            className={`text-xl font-bold ${
+                                balance >= 0
+                                    ? "text-sky-400"
+                                    : "text-amber-400"
+                            }`}
+                        >
+                            €{Math.abs(balance).toFixed(2)}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Deficit warning */}
+                {balance < 0 && (
+                    <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+                        <p className="text-amber-300 font-medium">
+                            You spent {Math.abs(balance).toFixed(2)} more than
+                            you earned this period.
+                        </p>
+                    </div>
+                )}
             </div>
         );
     };
@@ -276,14 +331,7 @@ export default function SheetPage() {
             <section className="max-w-6xl mx-auto px-6 py-16 space-y-8">
                 {/* Header */}
                 <div className="space-y-3">
-                    <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-2 bg-white/5">
-                        <div className="h-10 w-10 rounded-xl bg-emerald-500/20 grid place-items-center font-bold text-emerald-400">
-                            $€
-                        </div>
-                        <span className="font-semibold tracking-wide">
-                        EuroWise
-                    </span>
-                    </div>
+                    <Logo/>
 
                     <div>
                         <h1 className="text-4xl md:text-5xl font-bold">

@@ -37,7 +37,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-8 shadow-2xl">
                 <div className="mb-8 text-center">
                     <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-500/20 text-emerald-400 grid place-items-center text-2xl font-bold mb-4">
-                        ₿
+                        $€
                     </div>
                     <h1 className="text-3xl font-bold">Welcome Back</h1>
                     <p className="text-slate-300 mt-2">Login to manage your sheets and finances.</p>
