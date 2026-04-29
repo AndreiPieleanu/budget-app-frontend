@@ -8,8 +8,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import {authFetch} from "@/app/helpers/helpers";
-import {useSnackbar} from "notistack";
-import Link from "next/link";
+import {closeSnackbar, useSnackbar} from "notistack";
 import Logo from "@/components/ui/logo";
 
 type Sheet = {
@@ -47,7 +46,6 @@ export default function SheetPage() {
 
     const createSheet = async () => {
         if (!name) return;
-        const token = localStorage.getItem("token");
         const res = await authFetch(`sheets`, {
             method: "POST",
             body: {name},
@@ -63,22 +61,106 @@ export default function SheetPage() {
         setEditingId(sheet.id);
         setEditName(sheet.name);
     };
-    const saveEdit = async (sourceId: number) => {
-        const token = localStorage.getItem("token");
-        await authFetch(`sheets/${sourceId}`, {
+    const saveEdit = async (sheetId: number) => {
+        const foundSheet = sheets.find((s) => s.id === sheetId);
+        if(!foundSheet){
+            enqueueSnackbar("Error! Source not found!", {
+                variant: "error",
+            })
+            return;
+        }
+        const updated = {
+            ...foundSheet,
+            name: editName,
+        };
+
+        setSheets((prev) =>
+            prev.map((s) => (s.id === sheetId ? updated : s))
+        );
+
+        await authFetch(`sheets/${sheetId}`, {
             method: "PUT",
             body: {name: editName},
         });
 
+        enqueueSnackbar("Item updated", {
+            variant: "success",
+            action: (snackbarId) => (
+                <button
+                    onClick={async () => {
+                        const res = await authFetch(
+                            `sheets/${sheetId}`,
+                            {
+                                method: "PUT",
+                                body: {
+                                    name: foundSheet.name
+                                },
+                            }
+                        );
+
+                        const restored = await res.json();
+
+                        // replace, don't append
+                        setSheets((prev) =>
+                            prev.map((s) =>
+                                s.id === sheetId
+                                    ? restored
+                                    : s
+                            )
+                        );
+
+                        closeSnackbar(snackbarId);
+                    }}
+                    className="font-bold"
+                >
+                    Undo
+                </button>
+            ),
+        })
+
         setEditingId(null);
-        await loadSheets();
     };
 
     const deleteSheet = async (sheetId: number) => {
+        const foundSheet = sheets.find((s) => s.id === sheetId);
+        if(!foundSheet) {
+            enqueueSnackbar("Error! Source not found!", {
+                variant: "error",
+            })
+            return;
+        }
+        setSheets(prev => prev.filter(s => s.id !== sheetId));
         await authFetch(`sheets/${sheetId}`, {
             method: "DELETE",
         });
-        await loadSheets();
+        enqueueSnackbar("Item deleted", {
+            variant: "success",
+            action: (snackbarId) => (
+                <button
+                    onClick={async () => {
+                        const res = await authFetch(`sheets`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: {
+                                name: foundSheet.name,
+                            },
+                        });
+
+                        const restored = await res.json();
+
+                        setSheets((prev) => [
+                            ...prev,
+                            restored,
+                        ]);
+
+                        closeSnackbar(snackbarId);
+                    }}
+                    className="font-bold"
+                >
+                    Undo
+                </button>
+            )
+        });
     };
 
 

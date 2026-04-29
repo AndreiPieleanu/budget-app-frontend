@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import {Sankey, Tooltip} from "recharts";
 import {authFetch} from "@/app/helpers/helpers";
-import {useSnackbar} from "notistack";
+import {closeSnackbar, useSnackbar} from "notistack";
 import Logo from "@/components/ui/logo";
 
 type Source = {
@@ -45,12 +45,18 @@ export default function SheetPage() {
     useEffect(() => {
         const loadPage = async () => {
             try {
-                loadSources();
+                const [sourcesRes, sheetRes] = await Promise.all([
+                    authFetch(`sources/sheet/${id}`),
+                    authFetch(`sheets/${id}`)
+                ]);
 
-                const res = await authFetch(`sheets/${id}`);
-                const data = await res.json();
+                const [sourcesData, sheetData] = await Promise.all([
+                    sourcesRes.json(),
+                    sheetRes.json()
+                ]);
 
-                setSheetName(data.name);
+                setSources(sourcesData);
+                setSheetName(sheetData.name);
 
             } catch (error: any) {
                 enqueueSnackbar(error.message, {
@@ -60,10 +66,10 @@ export default function SheetPage() {
         };
 
         loadPage();
-    }, [id, loadSources]);
+    }, [enqueueSnackbar, id, loadSources]);
 
     const createSource = async () => {
-        await authFetch(`sources`, {
+        const res = await authFetch(`sources`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: {
@@ -76,14 +82,52 @@ export default function SheetPage() {
 
         setAmount("");
         setDescription("");
-        loadSources();
+        const created = await res.json();
+
+        setSources(prev => [...prev, created]);
     };
 
     const deleteSource = async (sourceId: number) => {
+        const foundSource = sources.find((s) => s.id === sourceId);
+        if(!foundSource) {
+            enqueueSnackbar("Error! Source not found!", {
+                variant: "error",
+            })
+            return;
+        }
+        setSources(prev => prev.filter(s => s.id !== sourceId));
         await authFetch(`sources/${sourceId}`, {
             method: "DELETE",
         });
-        loadSources();
+        enqueueSnackbar("Item deleted", {
+            variant: "success",
+            action: (snackbarId) => (
+                <button
+                    onClick={async () => {
+                        const res = await authFetch(`sources`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: {
+                                type: foundSource.type,
+                                amount: foundSource.amount,
+                                description: foundSource.description,
+                                sheetId: id
+                            },
+                        });
+                        const restored = await res.json();
+                        setSources((prev) => [
+                            ...prev,
+                            restored,
+                        ]);
+
+                        closeSnackbar(snackbarId);
+                    }}
+                    className="font-bold"
+                >
+                    Undo
+                </button>
+            )
+        });
     };
 
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -99,6 +143,27 @@ export default function SheetPage() {
     };
 
     const saveEdit = async (sourceId: number) => {
+        const foundSource = sources.find((s) => s.id === sourceId);
+
+        if (!foundSource) {
+            enqueueSnackbar("Error! Source not found!", {
+                variant: "error",
+            });
+            return;
+        }
+
+        const updated = {
+            ...foundSource,
+            type: editType,
+            amount: Number(editAmount),
+            description: editDescription,
+        };
+
+        // optimistic update
+        setSources((prev) =>
+            prev.map((s) => (s.id === sourceId ? updated : s))
+        );
+
         await authFetch(`sources/${sourceId}`, {
             method: "PUT",
             headers: {"Content-Type": "application/json"},
@@ -106,12 +171,54 @@ export default function SheetPage() {
                 type: editType,
                 amount: Number(editAmount),
                 description: editDescription,
-                sheetId: id,
+                sheetId: Number(id),
             },
         });
 
+        enqueueSnackbar("Item updated", {
+            variant: "success",
+            action: (snackbarId) => (
+                <button
+                    onClick={async () => {
+                        const res = await authFetch(
+                            `sources/${sourceId}`,
+                            {
+                                method: "PUT",
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+                                },
+                                body: {
+                                    type: foundSource.type,
+                                    amount: foundSource.amount,
+                                    description:
+                                    foundSource.description,
+                                    sheetId: Number(id),
+                                },
+                            }
+                        );
+
+                        const restored = await res.json();
+
+                        // replace, don't append
+                        setSources((prev) =>
+                            prev.map((s) =>
+                                s.id === sourceId
+                                    ? restored
+                                    : s
+                            )
+                        );
+
+                        closeSnackbar(snackbarId);
+                    }}
+                    className="font-bold"
+                >
+                    Undo
+                </button>
+            ),
+        });
+
         setEditingId(null);
-        loadSources();
     };
 
     const buildSankeyData = (sources: Source[]) => {
@@ -223,7 +330,7 @@ export default function SheetPage() {
             <div className="rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-md px-4 py-3 shadow-2xl text-white min-w-[160px]">
                 <p className="font-semibold">{d.name}</p>
                 <p className="text-sm text-slate-300 mt-1">
-                    Amount: <span className="text-emerald-400 font-medium">€{d.value}</span>
+                    Amount: <span className="text-emerald-400 font-medium">{d.value}</span>
                 </p>
             </div>
         );
@@ -285,14 +392,14 @@ export default function SheetPage() {
                     <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
                         <p className="text-sm text-slate-400">Income</p>
                         <p className="text-xl font-bold text-emerald-400">
-                            €{totalIncome.toFixed(2)}
+                            {totalIncome.toFixed(2)}
                         </p>
                     </div>
 
                     <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
                         <p className="text-sm text-slate-400">Expenses</p>
                         <p className="text-xl font-bold text-rose-400">
-                            €{totalExpense.toFixed(2)}
+                            {totalExpense.toFixed(2)}
                         </p>
                     </div>
 
@@ -308,7 +415,7 @@ export default function SheetPage() {
                                     : "text-amber-400"
                             }`}
                         >
-                            €{Math.abs(balance).toFixed(2)}
+                            {Math.abs(balance).toFixed(2)}
                         </p>
                     </div>
                 </div>
