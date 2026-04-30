@@ -166,148 +166,219 @@ export default function SheetPage() {
 
     return (
         <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-            <section className="max-w-6xl mx-auto px-6 py-16 space-y-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div>
-                        <Logo/>
-                        <h1 className="text-4xl md:text-5xl font-bold">Your Sheets</h1>
-                        <p className="text-slate-300 mt-2 max-w-xl">
-                            Organize budgets, expenses, investments, and custom finance trackers.
-                        </p>
-                    </div>
-                </div>
+            <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
 
                 {/* Create Sheet */}
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
-                    <h2 className="text-xl font-semibold mb-4">Create New Sheet</h2>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
+                        Create New Sheet
+                    </h2>
 
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Input
                             placeholder="Sheet name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm sm:text-base"
                         />
 
                         <Button
                             onClick={createSheet}
-                            className="rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold"
+                            className="w-full sm:w-auto rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold active:scale-[0.98]"
                         >
                             Create
                         </Button>
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl overflow-hidden">
+                {/* Sheets List */}
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
+
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">All Sheets</h2>
-                        <span className="text-sm text-slate-400">
+                        <h2 className="text-lg sm:text-xl font-semibold">
+                            All Sheets
+                        </h2>
+                        <span className="text-xs sm:text-sm text-slate-400">
                         {sheets.length} total
                     </span>
                     </div>
 
-                    <Table className="w-full">
-                        <TableHeader>
-                            <TableRow className="border-white/10 hover:bg-transparent">
-                                <TableHead className="text-slate-400">ID</TableHead>
-                                <TableHead className="text-slate-400">Name</TableHead>
-                                <TableHead className="text-slate-400 text-right">
-                                    Actions
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
+                    {/* MOBILE VIEW */}
+                    <div className="space-y-3 sm:hidden">
+                        {sheets.map((sheet) => (
+                            <div
+                                key={sheet.id}
+                                className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                            >
+                                {editingId === sheet.id ? (
+                                    <>
+                                        <Input
+                                            value={editName}
+                                            onChange={(e) =>
+                                                setEditName(e.target.value)
+                                            }
+                                            className="mb-3 bg-white/5 border-white/10 text-white"
+                                        />
 
-                        <TableBody>
-                            {sheets.map((sheet) => (
-                                <TableRow
-                                    key={sheet.id}
-                                    className="border-white/10 hover:bg-white/5 transition"
-                                >
-                                    {editingId === sheet.id ? (
-                                        <>
-                                            <TableCell>{sheet.id}</TableCell>
-
-                                            <TableCell>
-                                                <Input
-                                                    value={editName}
-                                                    onChange={(e) =>
-                                                        setEditName(e.target.value)
-                                                    }
-                                                    className="bg-white/5 border-white/10 text-white"
-                                                />
-                                            </TableCell>
-
-                                            <TableCell>
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        onClick={() =>
-                                                            saveEdit(sheet.id)
-                                                        }
-                                                        className="rounded-xl bg-emerald-500 hover:bg-emerald-400"
-                                                    >
-                                                        Save
-                                                    </Button>
-
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            setEditingId(null)
-                                                        }
-                                                        className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <TableCell className="text-slate-400">
-                                                {sheet.id}
-                                            </TableCell>
-
-                                            <TableCell
+                                        <div className="flex gap-2">
+                                            <Button
                                                 onClick={() =>
-                                                    router.push(
-                                                        `/sheet/${sheet.id}`
-                                                    )
+                                                    saveEdit(sheet.id)
                                                 }
-                                                className="cursor-pointer font-medium hover:text-emerald-400 transition"
+                                                className="flex-1 bg-emerald-500 hover:bg-emerald-400"
                                             >
-                                                {sheet.name}
-                                            </TableCell>
+                                                Save
+                                            </Button>
 
-                                            <TableCell>
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() =>
-                                                            startEdit(sheet)
-                                                        }
-                                                        className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
-                                                    >
-                                                        Edit
-                                                    </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setEditingId(null)
+                                                }
+                                                className="flex-1 border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div
+                                            onClick={() =>
+                                                router.push(`/sheet/${sheet.id}`)
+                                            }
+                                            className="font-semibold text-base mb-3 cursor-pointer hover:text-emerald-400"
+                                        >
+                                            {sheet.name}
+                                        </div>
 
-                                                    <Button
-                                                        variant="destructive"
-                                                        onClick={() =>
-                                                            deleteSheet(sheet.id)
-                                                        }
-                                                        className="rounded-xl"
-                                                    >
-                                                        Delete
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </>
-                                    )}
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    startEdit(sheet)
+                                                }
+                                                className="flex-1 border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                            >
+                                                Edit
+                                            </Button>
+
+                                            <Button
+                                                variant="destructive"
+                                                onClick={() =>
+                                                    deleteSheet(sheet.id)
+                                                }
+                                                className="flex-1"
+                                            >
+                                                Delete
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* DESKTOP TABLE */}
+                    <div className="hidden sm:block">
+                        <Table className="w-full">
+                            <TableHeader>
+                                <TableRow className="border-white/10 hover:bg-transparent">
+                                    <TableHead className="text-slate-400">ID</TableHead>
+                                    <TableHead className="text-slate-400">Name</TableHead>
+                                    <TableHead className="text-slate-400 text-right">
+                                        Actions
+                                    </TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+
+                            <TableBody>
+                                {sheets.map((sheet) => (
+                                    <TableRow
+                                        key={sheet.id}
+                                        className="border-white/10 hover:bg-white/5 transition"
+                                    >
+                                        {editingId === sheet.id ? (
+                                            <>
+                                                <TableCell>{sheet.id}</TableCell>
+
+                                                <TableCell>
+                                                    <Input
+                                                        value={editName}
+                                                        onChange={(e) =>
+                                                            setEditName(e.target.value)
+                                                        }
+                                                        className="bg-white/5 border-white/10 text-white"
+                                                    />
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            onClick={() =>
+                                                                saveEdit(sheet.id)
+                                                            }
+                                                            className="bg-emerald-500 hover:bg-emerald-400"
+                                                        >
+                                                            Save
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setEditingId(null)
+                                                            }
+                                                            className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <TableCell className="text-slate-400">
+                                                    {sheet.id}
+                                                </TableCell>
+
+                                                <TableCell
+                                                    onClick={() =>
+                                                        router.push(`/sheet/${sheet.id}`)
+                                                    }
+                                                    className="cursor-pointer font-medium hover:text-emerald-400 transition"
+                                                >
+                                                    {sheet.name}
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                startEdit(sheet)
+                                                            }
+                                                            className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                                        >
+                                                            Edit
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="destructive"
+                                                            onClick={() =>
+                                                                deleteSheet(sheet.id)
+                                                            }
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </>
+                                        )}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </section>
         </main>

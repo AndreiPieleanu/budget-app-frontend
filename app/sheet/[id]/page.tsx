@@ -350,33 +350,41 @@ export default function SheetPage() {
         const balance = Number((totalIncome - totalExpense).toFixed(2));
 
         const nodeCount = data.nodes.length;
-        const width = Math.max(900, nodeCount * 90);
+
+        // responsive width
+        const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+        const width = isMobile
+            ? Math.max(600, nodeCount * 70)
+            : Math.max(900, nodeCount * 90);
+
+        const height = isMobile ? 420 : 520;
 
         return (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
+
                 {/* Header */}
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-white">
+                <div className="mb-4 sm:mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">
                         Money Flow Overview
                     </h2>
 
-                    <p className="text-slate-300 mt-2">
+                    <p className="text-slate-300 mt-1 sm:mt-2 text-sm sm:text-base">
                         Visualize how income moves into expenses and savings.
                     </p>
                 </div>
 
                 {/* Graph */}
-                <div className="overflow-x-auto rounded-2xl bg-slate-950/70 border border-white/5 p-4">
+                <div className="overflow-x-auto rounded-2xl bg-slate-950/70 border border-white/5 p-3 sm:p-4">
                     <div style={{ width }}>
                         <Sankey
                             width={width}
-                            height={520}
+                            height={height}
                             data={data}
                             node={<CustomNode />}
-                            nodePadding={14}
+                            nodePadding={isMobile ? 10 : 14}
                             margin={{
-                                left: 50,
-                                right: 180,
+                                left: isMobile ? 20 : 50,
+                                right: isMobile ? 120 : 180,
                                 top: 20,
                                 bottom: 20,
                             }}
@@ -388,28 +396,28 @@ export default function SheetPage() {
                 </div>
 
                 {/* Summary */}
-                <div className="mt-6 grid sm:grid-cols-3 gap-4">
-                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                        <p className="text-sm text-slate-400">Income</p>
-                        <p className="text-xl font-bold text-emerald-400">
+                <div className="mt-5 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-3 sm:p-4">
+                        <p className="text-xs sm:text-sm text-slate-400">Income</p>
+                        <p className="text-lg sm:text-xl font-bold text-emerald-400">
                             {totalIncome.toFixed(2)}
                         </p>
                     </div>
 
-                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                        <p className="text-sm text-slate-400">Expenses</p>
-                        <p className="text-xl font-bold text-rose-400">
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-3 sm:p-4">
+                        <p className="text-xs sm:text-sm text-slate-400">Expenses</p>
+                        <p className="text-lg sm:text-xl font-bold text-rose-400">
                             {totalExpense.toFixed(2)}
                         </p>
                     </div>
 
-                    <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
-                        <p className="text-sm text-slate-400">
+                    <div className="rounded-2xl bg-white/5 border border-white/10 p-3 sm:p-4">
+                        <p className="text-xs sm:text-sm text-slate-400">
                             {balance >= 0 ? "Remaining" : "Deficit"}
                         </p>
 
                         <p
-                            className={`text-xl font-bold ${
+                            className={`text-lg sm:text-xl font-bold ${
                                 balance >= 0
                                     ? "text-sky-400"
                                     : "text-amber-400"
@@ -422,10 +430,9 @@ export default function SheetPage() {
 
                 {/* Deficit warning */}
                 {balance < 0 && (
-                    <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-                        <p className="text-amber-300 font-medium">
-                            You spent {Math.abs(balance).toFixed(2)} more than
-                            you earned this period.
+                    <div className="mt-4 sm:mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 sm:px-4 py-2 sm:py-3">
+                        <p className="text-amber-300 font-medium text-sm sm:text-base">
+                            You spent {Math.abs(balance).toFixed(2)} more than you earned.
                         </p>
                     </div>
                 )}
@@ -435,28 +442,27 @@ export default function SheetPage() {
 
     return (
         <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-            <section className="max-w-6xl mx-auto px-6 py-16 space-y-8">
+            <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
+
                 {/* Header */}
                 <div className="space-y-3">
-                    <Logo/>
-
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-bold">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
                             {sheetName}
                         </h1>
-                        <p className="text-slate-300 mt-2">
+                        <p className="text-slate-300 mt-2 text-sm sm:text-base">
                             Track income and expenses with clarity.
                         </p>
                     </div>
                 </div>
 
                 {/* Add Source */}
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
-                    <h2 className="text-xl font-semibold mb-4">
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                         Add Transaction
                     </h2>
 
-                    <div className="grid md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         <Select
                             value={type}
                             onValueChange={(v: any) => setType(v)}
@@ -464,23 +470,16 @@ export default function SheetPage() {
                             <SelectTrigger className="bg-white/5 border-white/10 text-white">
                                 <SelectValue />
                             </SelectTrigger>
-
                             <SelectContent>
-                                <SelectItem value="INCOME">
-                                    Income
-                                </SelectItem>
-                                <SelectItem value="EXPENSE">
-                                    Expense
-                                </SelectItem>
+                                <SelectItem value="INCOME">Income</SelectItem>
+                                <SelectItem value="EXPENSE">Expense</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <Input
                             placeholder="Description"
                             value={description}
-                            onChange={(e) =>
-                                setDescription(e.target.value)
-                            }
+                            onChange={(e) => setDescription(e.target.value)}
                             className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
                         />
 
@@ -488,16 +487,14 @@ export default function SheetPage() {
                             type="number"
                             placeholder="Amount"
                             value={amount}
-                            onChange={(e) =>
-                                setAmount(e.target.value)
-                            }
+                            onChange={(e) => setAmount(e.target.value)}
                             min={0}
                             className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
                         />
 
                         <Button
                             onClick={createSource}
-                            className="rounded-2xl bg-emerald-500 hover:bg-emerald-400 font-semibold"
+                            className="w-full lg:w-auto rounded-2xl text-black bg-emerald-500 hover:bg-emerald-400 font-semibold active:scale-[0.98]"
                         >
                             Add
                         </Button>
@@ -508,14 +505,115 @@ export default function SheetPage() {
                 <div className="flex justify-end">
                     <Button
                         onClick={() => setShowGraph(true)}
-                        className="rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold"
+                        className="w-full sm:w-auto rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold text-black"
                     >
                         Generate Graph
                     </Button>
                 </div>
 
-                {/* Table */}
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl overflow-hidden">
+                {/* MOBILE LIST */}
+                <div className="space-y-3 sm:hidden">
+                    {sources.map((src) => (
+                        <div
+                            key={src.id}
+                            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                        >
+                            {editingId === src.id ? (
+                                <>
+                                    <Input
+                                        value={editDescription}
+                                        onChange={(e) =>
+                                            setEditDescription(e.target.value)
+                                        }
+                                        className="mb-3 bg-white/5 border-white/10 text-white"
+                                    />
+
+                                    <div className="flex gap-2 mb-3">
+                                        <Select
+                                            value={editType}
+                                            onValueChange={(v: any) =>
+                                                setEditType(v)
+                                            }
+                                        >
+                                            <SelectTrigger className="flex-1 bg-white/5 border-white/10 text-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="INCOME">Income</SelectItem>
+                                                <SelectItem value="EXPENSE">Expense</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+
+                                        <Input
+                                            type="number"
+                                            value={editAmount}
+                                            onChange={(e) =>
+                                                setEditAmount(e.target.value)
+                                            }
+                                            className="flex-1 bg-white/5 border-white/10 text-white"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => saveEdit(src.id)}
+                                            className="flex-1 bg-emerald-500 hover:bg-emerald-400"
+                                        >
+                                            Save
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setEditingId(null)}
+                                            className="flex-1 border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                        >
+                                            Cancel
+                                        </Button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-center mb-2">
+                                    <span className="font-semibold">
+                                        {src.description}
+                                    </span>
+
+                                        <span
+                                            className={`font-semibold ${
+                                                src.type === "INCOME"
+                                                    ? "text-emerald-400"
+                                                    : "text-rose-400"
+                                            }`}
+                                        >
+                                        {src.amount}
+                                    </span>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => startEdit(src)}
+                                            className="flex-1 border-white/15 bg-white/5 hover:bg-white/10 text-white"
+                                        >
+                                            Edit
+                                        </Button>
+
+                                        <Button
+                                            variant="destructive"
+                                            onClick={() => deleteSource(src.id)}
+                                            className="flex-1"
+                                        >
+                                            Delete
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {/* DESKTOP TABLE */}
+                <div className="hidden sm:block rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl overflow-hidden">
                     <Table className="w-full">
                         <TableHeader>
                             <TableRow className="border-white/10 hover:bg-transparent">
@@ -544,14 +642,9 @@ export default function SheetPage() {
                                         <>
                                             <TableCell>
                                                 <Input
-                                                    value={
-                                                        editDescription
-                                                    }
+                                                    value={editDescription}
                                                     onChange={(e) =>
-                                                        setEditDescription(
-                                                            e.target
-                                                                .value
-                                                        )
+                                                        setEditDescription(e.target.value)
                                                     }
                                                     className="bg-white/5 border-white/10 text-white"
                                                 />
@@ -560,43 +653,26 @@ export default function SheetPage() {
                                             <TableCell colSpan={2}>
                                                 <div className="flex gap-2">
                                                     <Select
-                                                        value={
-                                                            editType
-                                                        }
-                                                        onValueChange={(
-                                                            v: any
-                                                        ) =>
-                                                            setEditType(
-                                                                v
-                                                            )
+                                                        value={editType}
+                                                        onValueChange={(v: any) =>
+                                                            setEditType(v)
                                                         }
                                                     >
                                                         <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
                                                             <SelectValue />
                                                         </SelectTrigger>
-
                                                         <SelectContent>
-                                                            <SelectItem value="INCOME">
-                                                                Income
-                                                            </SelectItem>
-                                                            <SelectItem value="EXPENSE">
-                                                                Expense
-                                                            </SelectItem>
+                                                            <SelectItem value="INCOME">Income</SelectItem>
+                                                            <SelectItem value="EXPENSE">Expense</SelectItem>
                                                         </SelectContent>
                                                     </Select>
 
                                                     <Input
                                                         type="number"
-                                                        value={
-                                                            editAmount
-                                                        }
+                                                        value={editAmount}
                                                         onChange={(e) =>
-                                                            setEditAmount(
-                                                                e.target
-                                                                    .value
-                                                            )
+                                                            setEditAmount(e.target.value)
                                                         }
-                                                        min={0}
                                                         className="bg-white/5 border-white/10 text-white"
                                                     />
                                                 </div>
@@ -605,23 +681,15 @@ export default function SheetPage() {
                                             <TableCell>
                                                 <div className="flex justify-end gap-2">
                                                     <Button
-                                                        onClick={() =>
-                                                            saveEdit(
-                                                                src.id
-                                                            )
-                                                        }
-                                                        className="rounded-xl bg-emerald-500 hover:bg-emerald-400"
+                                                        onClick={() => saveEdit(src.id)}
+                                                        className="bg-emerald-500 hover:bg-emerald-400"
                                                     >
                                                         Save
                                                     </Button>
 
                                                     <Button
                                                         variant="outline"
-                                                        onClick={() =>
-                                                            setEditingId(
-                                                                null
-                                                            )
-                                                        }
+                                                        onClick={() => setEditingId(null)}
                                                         className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
                                                     >
                                                         Cancel
@@ -632,34 +700,22 @@ export default function SheetPage() {
                                     ) : (
                                         <>
                                             <TableCell className="font-medium">
-                                                {
-                                                    src.description
-                                                }
+                                                {src.description}
                                             </TableCell>
 
                                             <TableCell className="text-emerald-400 font-semibold">
-                                                {src.type ===
-                                                "INCOME"
-                                                    ? `${src.amount}`
-                                                    : ""}
+                                                {src.type === "INCOME" ? src.amount : ""}
                                             </TableCell>
 
                                             <TableCell className="text-rose-400 font-semibold">
-                                                {src.type ===
-                                                "EXPENSE"
-                                                    ? `${src.amount}`
-                                                    : ""}
+                                                {src.type === "EXPENSE" ? src.amount : ""}
                                             </TableCell>
 
                                             <TableCell>
                                                 <div className="flex justify-end gap-2">
                                                     <Button
                                                         variant="outline"
-                                                        onClick={() =>
-                                                            startEdit(
-                                                                src
-                                                            )
-                                                        }
+                                                        onClick={() => startEdit(src)}
                                                         className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
                                                     >
                                                         Edit
@@ -667,11 +723,7 @@ export default function SheetPage() {
 
                                                     <Button
                                                         variant="destructive"
-                                                        onClick={() =>
-                                                            deleteSource(
-                                                                src.id
-                                                            )
-                                                        }
+                                                        onClick={() => deleteSource(src.id)}
                                                     >
                                                         Delete
                                                     </Button>
@@ -687,8 +739,8 @@ export default function SheetPage() {
 
                 {/* Graph */}
                 {showGraph && (
-                    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
-                        <h2 className="text-xl font-semibold mb-4">
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
+                        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                             Overview Graph
                         </h2>
                         <Graph sources={sources} />
