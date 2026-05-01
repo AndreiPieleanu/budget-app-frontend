@@ -21,19 +21,18 @@ export default function SheetPage() {
     const [name, setName] = useState("");
     const router = useRouter();
     const { enqueueSnackbar } = useSnackbar();
+    const [addLoading, setAddLoading] = useState(false);
+    const [loadingSheets, setLoadingSheets] = useState(false);
 
-    const loadSheets = async () => {
-        authFetch(`sheets/me`)
-            .then(res => res.json())
-            .then(setSheets);
-    };
     useEffect(() => {
         const loadPage = async () => {
+            setLoadingSheets(true)
             try {
                 const res = await authFetch(`sheets/me`);
                 const data = await res.json();
 
                 setSheets(data);
+                setLoadingSheets(false)
             } catch (error: any) {
                 enqueueSnackbar(error.message, {
                     variant: "error",
@@ -45,15 +44,26 @@ export default function SheetPage() {
     }, []);
 
     const createSheet = async () => {
-        if (!name) return;
-        const res = await authFetch(`sheets`, {
-            method: "POST",
-            body: {name},
-        });
+        if(!name){
+            enqueueSnackbar("Error! Please add name!", {variant: "error"})
+            setAddLoading(false)
+            return;
+        }
+        try{
+            setAddLoading(true)
+            const res = await authFetch(`sheets`, {
+                method: "POST",
+                body: {name},
+            });
 
-        const newSheet = await res.json();
-        setSheets(prev => [...prev, newSheet]);
-        setName("");
+            const newSheet = await res.json();
+            setSheets(prev => [...prev, newSheet]);
+            setName("");
+        } catch (e){
+            enqueueSnackbar(`An error occurred! ${e}`);
+        } finally {
+            setAddLoading(false);
+        }
     };
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editName, setEditName] = useState("");
@@ -163,7 +173,20 @@ export default function SheetPage() {
         });
     };
 
-
+    if (loadingSheets) {
+        return (
+            <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+                <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
+                    <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm text-slate-300">
+                            Loading sheets... please wait
+                        </p>
+                    </div>
+                </section>
+            </main>
+        );
+    }
     return (
         <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
             <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
@@ -181,12 +204,19 @@ export default function SheetPage() {
                             onChange={(e) => setName(e.target.value)}
                             className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm sm:text-base"
                         />
-
                         <Button
                             onClick={createSheet}
-                            className="w-full sm:w-auto rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold active:scale-[0.98]"
+                            disabled={addLoading}
+                            className="w-full lg:w-auto rounded-2xl text-black bg-emerald-500 hover:bg-emerald-400 font-semibold active:scale-[0.98]"
                         >
-                            Create
+                            {addLoading ? (
+                                <>
+                                    <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Creating...
+                                </>
+                            ) : (
+                                "Create"
+                            )}
                         </Button>
                     </div>
                 </div>

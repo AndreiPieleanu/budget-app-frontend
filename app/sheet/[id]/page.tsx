@@ -14,7 +14,6 @@ import {
 import {Sankey, Tooltip} from "recharts";
 import {authFetch} from "@/app/helpers/helpers";
 import {closeSnackbar, useSnackbar} from "notistack";
-import Logo from "@/components/ui/logo";
 
 type Source = {
     id: number;
@@ -34,16 +33,13 @@ export default function SheetPage() {
     const [showGraph, setShowGraph] = useState(false);
 
     const [sheetName, setSheetName] = useState("");
+    const [addLoading, setAddLoading] = useState(false);
+    const [loadingSources, setLoadingSources] = useState(false);
     const { enqueueSnackbar } = useSnackbar();
-
-    const loadSources = useCallback(() => {
-        authFetch(`sources/sheet/${id}`)
-            .then(res => res.json())
-            .then(setSources);
-    }, [id]);
 
     useEffect(() => {
         const loadPage = async () => {
+            setLoadingSources(true)
             try {
                 const [sourcesRes, sheetRes] = await Promise.all([
                     authFetch(`sources/sheet/${id}`),
@@ -58,6 +54,8 @@ export default function SheetPage() {
                 setSources(sourcesData);
                 setSheetName(sheetData.name);
 
+                setLoadingSources(false)
+
             } catch (error: any) {
                 enqueueSnackbar(error.message, {
                     variant: "error",
@@ -66,25 +64,37 @@ export default function SheetPage() {
         };
 
         loadPage();
-    }, [enqueueSnackbar, id, loadSources]);
+    }, [enqueueSnackbar, id]);
 
     const createSource = async () => {
-        const res = await authFetch(`sources`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: {
-                type,
-                amount: Number(amount),
-                description,
-                sheetId: Number(id),
-            },
-        });
+        if(!description || !amount){
+            enqueueSnackbar("Error! Please add description and amount!", {variant: "error"})
+            setAddLoading(false)
+            return;
+        }
+        try{
+            setAddLoading(true)
+            const res = await authFetch(`sources`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: {
+                    type,
+                    amount: Number(amount),
+                    description,
+                    sheetId: Number(id),
+                },
+            });
 
-        setAmount("");
-        setDescription("");
-        const created = await res.json();
+            setAmount("");
+            setDescription("");
+            const created = await res.json();
 
-        setSources(prev => [...prev, created]);
+            setSources(prev => [...prev, created]);
+        } catch (e){
+            enqueueSnackbar(`An error occurred! ${e}`);
+        } finally {
+            setAddLoading(false);
+        }
     };
 
     const deleteSource = async (sourceId: number) => {
@@ -440,6 +450,20 @@ export default function SheetPage() {
         );
     };
 
+    if (loadingSources) {
+        return (
+            <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+                <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
+                    <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm text-slate-300">
+                            Loading sources... please wait
+                        </p>
+                    </div>
+                </section>
+            </main>
+        );
+    }
     return (
         <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
             <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
@@ -494,9 +518,17 @@ export default function SheetPage() {
 
                         <Button
                             onClick={createSource}
+                            disabled={addLoading}
                             className="w-full lg:w-auto rounded-2xl text-black bg-emerald-500 hover:bg-emerald-400 font-semibold active:scale-[0.98]"
                         >
-                            Add
+                            {addLoading ? (
+                                <>
+                                    <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Adding...
+                                </>
+                            ) : (
+                                "Add"
+                            )}
                         </Button>
                     </div>
                 </div>

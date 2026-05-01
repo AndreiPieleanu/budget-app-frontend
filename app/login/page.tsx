@@ -8,28 +8,41 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email, password }),
-        });
-
-        if (!res.ok) {
-            setMessage("Login failed");
+        setLoading(true);
+        setMessage("");
+        if(!email || !password){
+            setMessage("Login failed! Insert username and password!")
+            setLoading(false)
             return;
         }
 
-        const data = await res.json();
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email, password }),
+            });
 
-        localStorage.setItem("token", data.token);
+            if (!res.ok) {
+                setMessage("Login failed");
+                return;
+            }
 
-        setMessage("Logged in");
+            const data = await res.json();
+            localStorage.setItem("token", data.token);
+            window.dispatchEvent(new Event("authChanged"));
 
-        router.push("/")
+            router.push("/");
+        } catch (e) {
+            setMessage("Something went wrong");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -72,9 +85,17 @@ export default function LoginPage() {
 
                     <button
                         onClick={handleLogin}
-                        className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-400 transition py-3 text-sm sm:text-base font-semibold active:scale-[0.98]"
+                        disabled={loading}
+                        className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-400 transition py-3 font-semibold flex items-center justify-center gap-2 disabled:opacity-70"
                     >
-                        Login
+                        {loading ? (
+                            <>
+                                <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Logging in...
+                            </>
+                        ) : (
+                            "Login"
+                        )}
                     </button>
 
                     <button

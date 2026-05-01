@@ -9,7 +9,14 @@ export default function Header() {
     const router = useRouter();
 
     useEffect(() => {
-        setToken(localStorage.getItem("token"));
+        const updateToken = () => {
+            setToken(localStorage.getItem("token"));
+        };
+
+        updateToken();
+
+        window.addEventListener("authChanged", updateToken);
+        return () => window.removeEventListener("authChanged", updateToken);
     }, []);
 
     const handleLogout = () => {
