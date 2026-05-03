@@ -20,13 +20,17 @@ type Source = {
     type: "INCOME" | "EXPENSE";
     amount: number;
     description: string;
+    currency: "EUR" | "RON" | "HUF" | "ZAR" | "USD";
 };
 
 export default function SheetPage() {
     const { id } = useParams();
 
     const [sources, setSources] = useState<Source[]>([]);
+    const [convertedSources, setConvertedSources] = useState<Source[]>([]);
     const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
+    const [currency, setCurrency] = useState<"EUR" | "RON" | "HUF" | "ZAR" | "USD">("HUF");
+    const [currencyTo, setCurrencyTo] = useState<"EUR" | "RON" | "HUF" | "ZAR" | "USD">("HUF");
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
 
@@ -82,6 +86,7 @@ export default function SheetPage() {
                     amount: Number(amount),
                     description,
                     sheetId: Number(id),
+                    currency
                 },
             });
 
@@ -121,7 +126,8 @@ export default function SheetPage() {
                                 type: foundSource.type,
                                 amount: foundSource.amount,
                                 description: foundSource.description,
-                                sheetId: id
+                                sheetId: id,
+                                currency: foundSource.currency
                             },
                         });
                         const restored = await res.json();
@@ -144,12 +150,14 @@ export default function SheetPage() {
     const [editAmount, setEditAmount] = useState("");
     const [editDescription, setEditDescription] = useState("");
     const [editType, setEditType] = useState<"INCOME" | "EXPENSE">("INCOME");
+    const [editCurrency, setEditCurrency] = useState<"EUR" | "RON" | "HUF" | "ZAR" | "USD">("HUF");
 
     const startEdit = (src: Source) => {
         setEditingId(src.id);
         setEditAmount(String(src.amount));
         setEditDescription(src.description);
         setEditType(src.type);
+        setEditCurrency(src.currency);
     };
 
     const saveEdit = async (sourceId: number) => {
@@ -167,6 +175,7 @@ export default function SheetPage() {
             type: editType,
             amount: Number(editAmount),
             description: editDescription,
+            currency: editCurrency
         };
 
         // optimistic update
@@ -182,6 +191,7 @@ export default function SheetPage() {
                 amount: Number(editAmount),
                 description: editDescription,
                 sheetId: Number(id),
+                currency: editCurrency
             },
         });
 
@@ -201,9 +211,9 @@ export default function SheetPage() {
                                 body: {
                                     type: foundSource.type,
                                     amount: foundSource.amount,
-                                    description:
-                                    foundSource.description,
+                                    description: foundSource.description,
                                     sheetId: Number(id),
+                                    currency: foundSource.currency
                                 },
                             }
                         );
@@ -516,6 +526,22 @@ export default function SheetPage() {
                             className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
                         />
 
+                        <Select
+                            value={currency}
+                            onValueChange={(v: any) => setCurrency(v)}
+                        >
+                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="EUR">Euros</SelectItem>
+                                <SelectItem value="RON">Romanian rons</SelectItem>
+                                <SelectItem value="HUF">Hungarian forints</SelectItem>
+                                <SelectItem value="ZAR">South African rands</SelectItem>
+                                <SelectItem value="USD">US dollars</SelectItem>
+                            </SelectContent>
+                        </Select>
+
                         <Button
                             onClick={createSource}
                             disabled={addLoading}
@@ -535,8 +561,34 @@ export default function SheetPage() {
 
                 {/* Actions */}
                 <div className="flex justify-end">
+                    <span>Select currency to convert to:</span>
+
+                    <Select
+                        value={currencyTo}
+                        onValueChange={(v: any) => setCurrencyTo(v)}
+                    >
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="EUR">Euros</SelectItem>
+                            <SelectItem value="RON">Romanian rons</SelectItem>
+                            <SelectItem value="HUF">Hungarian forints</SelectItem>
+                            <SelectItem value="ZAR">South African rands</SelectItem>
+                            <SelectItem value="USD">US dollars</SelectItem>
+                        </SelectContent>
+                    </Select>
+
                     <Button
-                        onClick={() => setShowGraph(true)}
+                        onClick={async () => {
+                            const res = await authFetch(`sources/convert?sheetId=${id}&currencyTo=${currencyTo}`, {
+                                method: "GET",
+                                headers: { "Content-Type": "application/json" },
+                            });
+                            const resList = await res.json();
+                            setConvertedSources(resList)
+                            setShowGraph(true);
+                        }}
                         className="w-full sm:w-auto rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold text-black"
                     >
                         Generate Graph
@@ -584,6 +636,22 @@ export default function SheetPage() {
                                             }
                                             className="flex-1 bg-white/5 border-white/10 text-white"
                                         />
+
+                                        <Select
+                                            value={editCurrency}
+                                            onValueChange={(v: any) => setEditCurrency(v)}
+                                        >
+                                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="EUR">Euros</SelectItem>
+                                                <SelectItem value="RON">Romanian rons</SelectItem>
+                                                <SelectItem value="HUF">Hungarian forints</SelectItem>
+                                                <SelectItem value="ZAR">South African rands</SelectItem>
+                                                <SelectItem value="USD">US dollars</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     <div className="flex gap-2">
@@ -617,8 +685,8 @@ export default function SheetPage() {
                                                     : "text-rose-400"
                                             }`}
                                         >
-                                        {src.amount}
-                                    </span>
+                                            {src.amount} {src.currency}
+                                        </span>
                                     </div>
 
                                     <div className="flex gap-2">
@@ -657,6 +725,9 @@ export default function SheetPage() {
                                 </TableHead>
                                 <TableHead className="text-slate-400">
                                     Expense
+                                </TableHead>
+                                <TableHead className="text-slate-200">
+                                    Currency
                                 </TableHead>
                                 <TableHead className="text-right text-slate-400">
                                     Actions
@@ -711,6 +782,24 @@ export default function SheetPage() {
                                             </TableCell>
 
                                             <TableCell>
+                                                <Select
+                                                    value={editCurrency}
+                                                    onValueChange={(v: any) => setEditCurrency(v)}
+                                                >
+                                                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="EUR">Euros</SelectItem>
+                                                        <SelectItem value="RON">Romanian rons</SelectItem>
+                                                        <SelectItem value="HUF">Hungarian forints</SelectItem>
+                                                        <SelectItem value="ZAR">South African rands</SelectItem>
+                                                        <SelectItem value="USD">US dollars</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+
+                                            <TableCell>
                                                 <div className="flex justify-end gap-2">
                                                     <Button
                                                         onClick={() => saveEdit(src.id)}
@@ -741,6 +830,10 @@ export default function SheetPage() {
 
                                             <TableCell className="text-rose-400 font-semibold">
                                                 {src.type === "EXPENSE" ? src.amount : ""}
+                                            </TableCell>
+
+                                            <TableCell className="font-semibold">
+                                                {src.currency}
                                             </TableCell>
 
                                             <TableCell>
@@ -775,7 +868,7 @@ export default function SheetPage() {
                         <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                             Overview Graph
                         </h2>
-                        <Graph sources={sources} />
+                        <Graph sources={convertedSources} />
                     </div>
                 )}
             </section>
