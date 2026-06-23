@@ -1,6 +1,6 @@
 "use client";
 
-import {useCallback, useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import {Sankey, Tooltip} from "recharts";
-import {authFetch} from "@/app/helpers/helpers";
+import {authFetch, createLog} from "@/app/helpers/helpers";
 import {closeSnackbar, useSnackbar} from "notistack";
 
 type Source = {
@@ -21,24 +21,64 @@ type Source = {
     amount: number;
     description: string;
     currency: "EUR" | "RON" | "HUF" | "ZAR" | "USD";
+    actualAmount: number;
+    possibleStartDate: string;
+    possibleEndDate: string;
 };
+
+type Timeline = {
+    id: number;
+    description: string;
+    type: "INCOME" | "EXPENSE";
+    amount: number;
+    currency: "EUR" | "RON" | "HUF" | "ZAR" | "USD";
+    startDate: string;
+    endDate: string;
+};
+
+type LogsEvent = {
+    id: number;
+    message: string;
+    createdAt: string;
+    email: string;
+}
 
 export default function SheetPage() {
     const { id } = useParams();
+    const today = new Date().toISOString().split("T")[0];
 
     const [sources, setSources] = useState<Source[]>([]);
     const [convertedSources, setConvertedSources] = useState<Source[]>([]);
+    const [convertedTimelines, setConvertedTimelines] = useState<Timeline[]>([]);
     const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
     const [currency, setCurrency] = useState<"EUR" | "RON" | "HUF" | "ZAR" | "USD">("HUF");
     const [currencyTo, setCurrencyTo] = useState<"EUR" | "RON" | "HUF" | "ZAR" | "USD">("HUF");
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
+    const [possibleStartDate, setPossibleStartDate] = useState("");
+    const [possibleEndDate, setPossibleEndDate] = useState("");
 
     const [showGraph, setShowGraph] = useState(false);
+    const [showTimeline, setShowTimeline] = useState(false);
 
     const [sheetName, setSheetName] = useState("");
     const [addLoading, setAddLoading] = useState(false);
     const [loadingSources, setLoadingSources] = useState(false);
+
+    const [logs, setLogs] = useState<LogsEvent[]>([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+    const loadLogs = async () => {
+        setLoadingLogs(true);
+
+        try {
+            const res = await authFetch(`logs/user/${1}`);
+            const data = await res.json();
+
+            setLogs(data);
+        } finally {
+            setLoadingLogs(false);
+        }
+    };
     const { enqueueSnackbar } = useSnackbar();
 
     useEffect(() => {
@@ -57,7 +97,7 @@ export default function SheetPage() {
 
                 setSources(sourcesData);
                 setSheetName(sheetData.name);
-
+                //console.log(sourcesData)
                 setLoadingSources(false)
 
             } catch (error: any) {
@@ -86,9 +126,14 @@ export default function SheetPage() {
                     amount: Number(amount),
                     description,
                     sheetId: Number(id),
-                    currency
+                    currency,
+                    possibleStartDate: possibleStartDate,
+                    possibleEndDate: possibleEndDate
                 },
             });
+            await createLog(
+                `Added ${type.toLowerCase()} source '${description}' to sheet '${sheetName}' with estimated amount ${amount} ${currency} between ${possibleStartDate} and ${possibleEndDate}.`
+            ).catch(console.error);;
 
             setAmount("");
             setDescription("");
@@ -114,6 +159,9 @@ export default function SheetPage() {
         await authFetch(`sources/${sourceId}`, {
             method: "DELETE",
         });
+        await createLog(
+            `Deleted source '${foundSource.description}' from sheet '${sheetName}'.`
+        ).catch(console.error);;
         enqueueSnackbar("Item deleted", {
             variant: "success",
             action: (snackbarId) => (
@@ -127,9 +175,15 @@ export default function SheetPage() {
                                 amount: foundSource.amount,
                                 description: foundSource.description,
                                 sheetId: id,
-                                currency: foundSource.currency
+                                currency: foundSource.currency,
+                                actualAmount: foundSource.actualAmount,
+                                possibleStartDate: foundSource.possibleStartDate,
+                                possibleEndDate: foundSource.possibleEndDate
                             },
                         });
+                        await createLog(
+                            `Restored former deleted source '${foundSource.description}' back to sheet '${sheetName}'.`
+                        ).catch(console.error);;
                         const restored = await res.json();
                         setSources((prev) => [
                             ...prev,
@@ -151,13 +205,20 @@ export default function SheetPage() {
     const [editDescription, setEditDescription] = useState("");
     const [editType, setEditType] = useState<"INCOME" | "EXPENSE">("INCOME");
     const [editCurrency, setEditCurrency] = useState<"EUR" | "RON" | "HUF" | "ZAR" | "USD">("HUF");
+    const [editActualAmount, setEditActualAmount] = useState<string>("");
+    const [editPossibleStartDate, setEditPossibleStartDate] = useState("");
+    const [editPossibleEndDate, setEditPossibleEndDate] = useState("");
 
     const startEdit = (src: Source) => {
+        //console.log("source: ", src)
         setEditingId(src.id);
         setEditAmount(String(src.amount));
         setEditDescription(src.description);
         setEditType(src.type);
         setEditCurrency(src.currency);
+        setEditActualAmount(String(src.actualAmount));
+        setEditPossibleStartDate(src.possibleStartDate ?? today);
+        setEditPossibleEndDate(src.possibleEndDate ?? today);
     };
 
     const saveEdit = async (sourceId: number) => {
@@ -175,7 +236,10 @@ export default function SheetPage() {
             type: editType,
             amount: Number(editAmount),
             description: editDescription,
-            currency: editCurrency
+            currency: editCurrency,
+            actualAmount: Number(editActualAmount),
+            possibleStartDate: editPossibleStartDate,
+            possibleEndDate: editPossibleEndDate
         };
 
         // optimistic update
@@ -191,9 +255,18 @@ export default function SheetPage() {
                 amount: Number(editAmount),
                 description: editDescription,
                 sheetId: Number(id),
-                currency: editCurrency
+                currency: editCurrency,
+                actualAmount: Number(editActualAmount),
+                possibleStartDate: editPossibleStartDate,
+                possibleEndDate: editPossibleEndDate
             },
         });
+        await createLog(
+            `Updated source '${foundSource.description}' in sheet '${sheetName}':
+            amount ${foundSource.amount} ${foundSource.currency} → ${editAmount} ${editCurrency},
+            date range ${foundSource.possibleStartDate} - ${foundSource.possibleEndDate}
+            → ${editPossibleStartDate} - ${editPossibleEndDate}.`
+        ).catch(console.error);
 
         enqueueSnackbar("Item updated", {
             variant: "success",
@@ -213,10 +286,16 @@ export default function SheetPage() {
                                     amount: foundSource.amount,
                                     description: foundSource.description,
                                     sheetId: Number(id),
-                                    currency: foundSource.currency
+                                    currency: foundSource.currency,
+                                    actualAmount: foundSource.actualAmount,
+                                    possibleStartDate: foundSource.possibleStartDate,
+                                    possibleEndDate: foundSource.possibleEndDate
                                 },
                             }
                         );
+                        await createLog(
+                            `Restored source '${foundSource.description}' in sheet '${sheetName}' back to its original state: amount ${foundSource.amount} ${foundSource.currency}, date range ${foundSource.possibleStartDate} - ${foundSource.possibleEndDate}.`
+                        ).catch(console.error);
 
                         const restored = await res.json();
 
@@ -241,6 +320,11 @@ export default function SheetPage() {
         setEditingId(null);
     };
 
+    const getValue = (source: Source) =>
+        source.actualAmount != null && source.actualAmount !== 0
+            ? source.actualAmount
+            : source.amount;
+
     const buildSankeyData = (sources: Source[]) => {
         const incomes = sources.filter(s => s.type === "INCOME");
         const expenses = sources.filter(s => s.type === "EXPENSE");
@@ -257,7 +341,7 @@ export default function SheetPage() {
         });
 
         // ---- TOTAL NODE ----
-        const totalIncome = incomes.reduce((a, b) => a + b.amount, 0);
+        const totalIncome = incomes.reduce((sum, income) => sum + getValue(income), 0);
 
         const totalIndex = nodes.length;
         nodes.push({
@@ -270,7 +354,7 @@ export default function SheetPage() {
             links.push({
                 source: i,
                 target: totalIndex,
-                value: inc.amount,
+                value: getValue(inc),
             });
         });
 
@@ -279,6 +363,7 @@ export default function SheetPage() {
 
         expenses.forEach((exp) => {
             const idx = nodes.length;
+            const value = getValue(exp);
 
             nodes.push({
                 name: `${exp.description}`,
@@ -288,10 +373,10 @@ export default function SheetPage() {
             links.push({
                 source: totalIndex,
                 target: idx,
-                value: exp.amount,
+                value: value,
             });
 
-            totalExpense += exp.amount;
+            totalExpense += value;
         });
 
         // ---- REMAINDER NODE ----
@@ -358,14 +443,14 @@ export default function SheetPage() {
 
     const Graph = ({ sources }: { sources: Source[] }) => {
         const data = buildSankeyData(sources);
-
+        //console.log("sources: ", sources)
         const totalIncome = sources
             .filter((s) => s.type === "INCOME")
-            .reduce((sum, s) => sum + Number(s.amount), 0);
+            .reduce((sum, s) => sum + Number(getValue(s)), 0);
 
         const totalExpense = sources
             .filter((s) => s.type === "EXPENSE")
-            .reduce((sum, s) => sum + Number(s.amount), 0);
+            .reduce((sum, s) => sum + Number(getValue(s)), 0);
 
         const balance = Number((totalIncome - totalExpense).toFixed(2));
 
@@ -478,84 +563,108 @@ export default function SheetPage() {
         <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
             <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
 
-                {/* Header */}
-                <div className="space-y-3">
-                    <div>
-                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                            {sheetName}
-                        </h1>
-                        <p className="text-slate-300 mt-2 text-sm sm:text-base">
-                            Track income and expenses with clarity.
-                        </p>
-                    </div>
+                <div>
+                    <h1>
+                        {sheetName}
+                    </h1>
                 </div>
-
-                {/* Add Source */}
                 <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-5">
                         Add Transaction
                     </h2>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <Select
-                            value={type}
-                            onValueChange={(v: any) => setType(v)}
-                        >
-                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="INCOME">Income</SelectItem>
-                                <SelectItem value="EXPENSE">Expense</SelectItem>
-                            </SelectContent>
-                        </Select>
+                    <div className="space-y-4">
+                        {/* Main Fields */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                            <Select
+                                value={type}
+                                onValueChange={(v: any) => setType(v)}
+                            >
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="INCOME">Income</SelectItem>
+                                    <SelectItem value="EXPENSE">Expense</SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                        <Input
-                            placeholder="Description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
-                        />
+                            <Input
+                                placeholder="Description"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                            />
 
-                        <Input
-                            type="number"
-                            placeholder="Amount"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            min={0}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
-                        />
+                            <Input
+                                type="number"
+                                placeholder="Estimated amount"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                min={0}
+                                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400"
+                            />
 
-                        <Select
-                            value={currency}
-                            onValueChange={(v: any) => setCurrency(v)}
-                        >
-                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="EUR">Euros</SelectItem>
-                                <SelectItem value="RON">Romanian rons</SelectItem>
-                                <SelectItem value="HUF">Hungarian forints</SelectItem>
-                                <SelectItem value="ZAR">South African rands</SelectItem>
-                                <SelectItem value="USD">US dollars</SelectItem>
-                            </SelectContent>
-                        </Select>
+                            <Select
+                                value={currency}
+                                onValueChange={(v: any) => setCurrency(v)}
+                            >
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="EUR">Euros</SelectItem>
+                                    <SelectItem value="RON">Romanian rons</SelectItem>
+                                    <SelectItem value="HUF">Hungarian forints</SelectItem>
+                                    <SelectItem value="ZAR">South African rands</SelectItem>
+                                    <SelectItem value="USD">US dollars</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                        <Button
-                            onClick={createSource}
-                            disabled={addLoading}
-                            className="w-full lg:w-auto rounded-2xl text-black bg-emerald-500 hover:bg-emerald-400 font-semibold active:scale-[0.98]"
-                        >
-                            {addLoading ? (
-                                <>
-                                    <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Adding...
-                                </>
-                            ) : (
-                                "Add"
-                            )}
-                        </Button>
+                        {/* Estimated Date Range */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-300">
+                                    Estimated receive/spend start date
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={possibleStartDate}
+                                    onChange={(e) => setPossibleStartDate(e.target.value)}
+                                    className="bg-white/5 border-white/10 text-white"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-300">
+                                    Estimated receive/spend end date
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={possibleEndDate}
+                                    onChange={(e) => setPossibleEndDate(e.target.value)}
+                                    className="bg-white/5 border-white/10 text-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button
+                                onClick={createSource}
+                                disabled={addLoading}
+                                className="w-full sm:w-auto rounded-2xl text-black bg-emerald-500 hover:bg-emerald-400 font-semibold active:scale-[0.98]"
+                            >
+                                {addLoading ? (
+                                    <>
+                                        <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    "Add Transaction"
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
@@ -586,12 +695,34 @@ export default function SheetPage() {
                                 headers: { "Content-Type": "application/json" },
                             });
                             const resList = await res.json();
+                            //console.log("resList: ", resList)
                             setConvertedSources(resList)
                             setShowGraph(true);
                         }}
                         className="w-full sm:w-auto rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold text-black"
                     >
                         Generate Graph
+                    </Button>
+
+                    <Button
+                        onClick={async () => {
+                            const res = await authFetch(`sources/${id}/timeline`, {
+                                method: "GET",
+                                headers: { "Content-Type": "application/json" },
+                            });
+                            const resList = await res.json();
+                            console.log("timelines: ", resList);
+                            setConvertedTimelines(resList);
+                            setShowTimeline(true);
+                        }}
+                        className="w-full sm:w-auto rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold text-black">
+                        Generate timeline
+                    </Button>
+
+                    <Button
+                        onClick={loadLogs}
+                        className="w-full sm:w-auto rounded-2xl bg-sky-500 hover:bg-sky-400 font-semibold text-black">
+                        Show logs
                     </Button>
                 </div>
 
@@ -717,19 +848,28 @@ export default function SheetPage() {
                     <Table className="w-full">
                         <TableHeader>
                             <TableRow className="border-white/10 hover:bg-transparent">
-                                <TableHead className="text-slate-400">
+                                <TableHead className="text-slate-200">
                                     Description
                                 </TableHead>
-                                <TableHead className="text-slate-400">
-                                    Income
+                                <TableHead className="text-slate-200">
+                                    Est. income
                                 </TableHead>
-                                <TableHead className="text-slate-400">
-                                    Expense
+                                <TableHead className="text-slate-200">
+                                    Est. expense
                                 </TableHead>
                                 <TableHead className="text-slate-200">
                                     Currency
                                 </TableHead>
-                                <TableHead className="text-right text-slate-400">
+                                <TableHead className="text-slate-200">
+                                    Actual amount
+                                </TableHead>
+                                <TableHead className="text-slate-200">
+                                    Estimated start date
+                                </TableHead>
+                                <TableHead className="text-slate-200">
+                                    Estimated end date
+                                </TableHead>
+                                <TableHead className="text-slate-200">
                                     Actions
                                 </TableHead>
                             </TableRow>
@@ -800,6 +940,35 @@ export default function SheetPage() {
                                             </TableCell>
 
                                             <TableCell>
+                                                <Input type="number"
+                                                       className="bg-white/5 border-white/10 text-white"
+                                                       value={editActualAmount}
+                                                       min={0}
+                                                       onChange={(e) =>
+                                                           setEditActualAmount(e.target.value)
+                                                       }
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Input
+                                                    type="date"
+                                                    value={editPossibleStartDate}
+                                                    onChange={(e) => setEditPossibleStartDate(e.target.value)}
+                                                    className="bg-white/5 border-white/10 text-white"
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Input
+                                                    type="date"
+                                                    value={editPossibleEndDate}
+                                                    onChange={(e) => setEditPossibleEndDate(e.target.value)}
+                                                    className="bg-white/5 border-white/10 text-white"
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
                                                 <div className="flex justify-end gap-2">
                                                     <Button
                                                         onClick={() => saveEdit(src.id)}
@@ -837,7 +1006,19 @@ export default function SheetPage() {
                                             </TableCell>
 
                                             <TableCell>
-                                                <div className="flex justify-end gap-2">
+                                                {src.actualAmount}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                {src.possibleStartDate}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                {src.possibleEndDate}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <div className="gap-2">
                                                     <Button
                                                         variant="outline"
                                                         onClick={() => startEdit(src)}
@@ -869,6 +1050,40 @@ export default function SheetPage() {
                             Overview Graph
                         </h2>
                         <Graph sources={convertedSources} />
+                    </div>
+                )}
+
+                {loadingLogs ? (
+                    <div className="flex items-center gap-3 text-slate-300">
+                        <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Loading activity...
+                    </div>
+                    ) : logs.length === 0 ? (
+                    <p className="text-slate-400">
+                        No activity yet.
+                    </p>
+                    ) : (
+                    <div className="space-y-3 max-h-125 overflow-y-auto">
+                        {logs.map((log) => (
+                            <div
+                                key={log.id}
+                                className="rounded-2xl border border-white/10 bg-slate-900/50 p-4"
+                            >
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                            <span className="text-sm font-medium text-emerald-400">
+                                {log.email}
+                            </span>
+
+                                    <span className="text-xs text-slate-400">
+                                {new Date(log.createdAt).toLocaleString()}
+                            </span>
+                                </div>
+
+                                <p className="text-sm text-slate-200 leading-relaxed">
+                                    {log.message}
+                                </p>
+                            </div>
+                        ))}
                     </div>
                 )}
             </section>

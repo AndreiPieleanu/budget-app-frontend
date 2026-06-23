@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {useRouter} from "next/navigation";
+import {createLog} from "@/app/helpers/helpers";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -36,7 +37,9 @@ export default function LoginPage() {
             const data = await res.json();
             localStorage.setItem("token", data.token);
             window.dispatchEvent(new Event("authChanged"));
-
+            // await createLog(
+            //     `User logged in successfully.`
+            // );
             router.push("/");
         } catch (e) {
             setMessage("Something went wrong");

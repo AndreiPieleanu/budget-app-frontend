@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {useRouter} from "next/navigation";
+import {createLog} from "@/app/helpers/helpers";
 
 export default function RegisterPage() {
     const [email, setEmail] = useState("");
@@ -20,6 +21,9 @@ export default function RegisterPage() {
 
         const text = await res.text();
         setMessage(text);
+        // await createLog(
+        //     `User ${email} started registering.`
+        // );
     };
 
     return (

@@ -41,3 +41,15 @@ export async function authFetch(
 
     return response;
 }
+
+export async function createLog(
+    message: string,
+) {
+    await authFetch("logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: {
+            message,
+        },
+    });
+}

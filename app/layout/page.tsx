@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/ui/logo";
+import {createLog} from "@/app/helpers/helpers";
 
 export default function Header() {
     const [token, setToken] = useState<string | null>(null);
@@ -19,7 +20,10 @@ export default function Header() {
         return () => window.removeEventListener("authChanged", updateToken);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await createLog(
+            `User logged out.`
+        );
         localStorage.removeItem("token");
         setToken(null);
         router.push("/login");
