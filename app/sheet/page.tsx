@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
-} from "@/components/ui/table";
-import {authFetch} from "@/app/helpers/helpers";
-import {closeSnackbar, useSnackbar} from "notistack";
-import Logo from "@/components/ui/logo";
+import { authFetch } from "@/app/helpers/helpers";
+import { enqueueSnackbar, closeSnackbar } from "notistack";
+import CreateSheetForm from "@/components/sheets/CreateSheetForm";
+import SheetList from "@/components/sheets/SheetList";
 
 type Sheet = {
     id: number;
@@ -18,11 +14,12 @@ type Sheet = {
 
 export default function SheetPage() {
     const [sheets, setSheets] = useState<Sheet[]>([]);
-    const [name, setName] = useState("");
-    const router = useRouter();
-    const { enqueueSnackbar } = useSnackbar();
     const [addLoading, setAddLoading] = useState(false);
     const [loadingSheets, setLoadingSheets] = useState(false);
+    const router = useRouter();
+
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editName, setEditName] = useState("");
 
     useEffect(() => {
         const loadPage = async () => {
@@ -37,43 +34,44 @@ export default function SheetPage() {
                 enqueueSnackbar(error.message, {
                     variant: "error",
                 });
+                if (error.message.includes("Session expired")) {
+                    router.push("/");
+                }
             }
         };
 
         loadPage();
-    }, []);
+    }, [router]);
 
-    const createSheet = async () => {
-        if(!name){
-            enqueueSnackbar("Error! Please add name!", {variant: "error"})
-            setAddLoading(false)
+    const createSheet = async (name: string) => {
+        if (!name) {
+            enqueueSnackbar("Error! Please add name!", { variant: "error" })
             return;
         }
-        try{
+        try {
             setAddLoading(true)
             const res = await authFetch(`sheets`, {
                 method: "POST",
-                body: {name},
+                body: { name },
             });
 
             const newSheet = await res.json();
             setSheets(prev => [...prev, newSheet]);
-            setName("");
-        } catch (e){
+        } catch (e: any) {
             enqueueSnackbar(`An error occurred! ${e}`);
         } finally {
             setAddLoading(false);
         }
     };
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [editName, setEditName] = useState("");
+
     const startEdit = (sheet: Sheet) => {
         setEditingId(sheet.id);
         setEditName(sheet.name);
     };
-    const saveEdit = async (sheetId: number) => {
+
+    const saveEdit = async (sheetId: number, name: string) => {
         const foundSheet = sheets.find((s) => s.id === sheetId);
-        if(!foundSheet){
+        if (!foundSheet) {
             enqueueSnackbar("Error! Source not found!", {
                 variant: "error",
             })
@@ -81,96 +79,101 @@ export default function SheetPage() {
         }
         const updated = {
             ...foundSheet,
-            name: editName,
+            name,
         };
 
         setSheets((prev) =>
             prev.map((s) => (s.id === sheetId ? updated : s))
         );
 
-        await authFetch(`sheets/${sheetId}`, {
-            method: "PUT",
-            body: {name: editName},
-        });
+        try {
+            await authFetch(`sheets/${sheetId}`, {
+                method: "PUT",
+                body: { name },
+            });
 
-        enqueueSnackbar("Item updated", {
-            variant: "success",
-            action: (snackbarId) => (
-                <button
-                    onClick={async () => {
-                        const res = await authFetch(
-                            `sheets/${sheetId}`,
-                            {
-                                method: "PUT",
-                                body: {
-                                    name: foundSheet.name
-                                },
-                            }
-                        );
+            enqueueSnackbar("Item updated", {
+                variant: "success",
+                action: (snackbarId) => (
+                    <button
+                        onClick={async () => {
+                            const res = await authFetch(
+                                `sheets/${sheetId}`,
+                                {
+                                    method: "PUT",
+                                    body: {
+                                        name: foundSheet.name
+                                    },
+                                }
+                            );
 
-                        const restored = await res.json();
+                            const restored = await res.json();
 
-                        // replace, don't append
-                        setSheets((prev) =>
-                            prev.map((s) =>
-                                s.id === sheetId
-                                    ? restored
-                                    : s
-                            )
-                        );
+                            setSheets((prev) =>
+                                prev.map((s) => (s.id === sheetId ? restored : s))
+                            );
 
-                        closeSnackbar(snackbarId);
-                    }}
-                    className="font-bold"
-                >
-                    Undo
-                </button>
-            ),
-        })
-
-        setEditingId(null);
-    };
-
-    const deleteSheet = async (sheetId: number) => {
-        const foundSheet = sheets.find((s) => s.id === sheetId);
-        if(!foundSheet) {
-            enqueueSnackbar("Error! Source not found!", {
-                variant: "error",
-            })
-            return;
-        }
-        setSheets(prev => prev.filter(s => s.id !== sheetId));
-        await authFetch(`sheets/${sheetId}`, {
-            method: "DELETE",
-        });
-        enqueueSnackbar("Item deleted", {
-            variant: "success",
-            action: (snackbarId) => (
-                <button
-                    onClick={async () => {
-                        const res = await authFetch(`sheets`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: {
-                                name: foundSheet.name,
-                            },
-                        });
-
-                        const restored = await res.json();
-
-                        setSheets((prev) => [
-                            ...prev,
-                            restored,
-                        ]);
-
-                        closeSnackbar(snackbarId);
-                    }}
+                            closeSnackbar(snackbarId);
+                        }
+                    }
                     className="font-bold"
                 >
                     Undo
                 </button>
             )
         });
+        } catch (e: any) {
+            enqueueSnackbar(`An error occurred! ${e}`, { variant: "error" });
+        }
+
+        setEditingId(null);
+    };
+
+    const deleteSheet = async (sheetId: number) => {
+        const foundSheet = sheets.find((s) => s.id === sheetId);
+        if (!foundSheet) {
+            enqueueSnackbar("Error! Source not found!", {
+                variant: "error",
+            })
+            return;
+        }
+        setSheets(prev => prev.filter(s => s.id !== sheetId));
+        try {
+            await authFetch(`sheets/${sheetId}`, {
+                method: "DELETE",
+            });
+            enqueueSnackbar("Item deleted", {
+                variant: "success",
+                action: (snackbarId) => (
+                    <button
+                        onClick={async () => {
+                            const res = await authFetch(`sheets`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: {
+                                    name: foundSheet.name,
+                                },
+                            });
+
+                            const restored = await res.json();
+
+                            setSheets((prev) => [
+                                ...prev,
+                                restored,
+                            ]);
+
+                            closeSnackbar(snackbarId);
+                        }
+                    }
+                        className="font-bold"
+                    >
+                    Undo
+                    </button>
+                )
+            });
+        } catch (e: any) {
+            enqueueSnackbar(`An error occurred! ${e}`, { variant: "error" });
+        }
     };
 
     if (loadingSheets) {
@@ -187,229 +190,24 @@ export default function SheetPage() {
             </main>
         );
     }
+
     return (
         <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
             <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-6 sm:space-y-8">
-
-                {/* Create Sheet */}
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
-                    <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
-                        Create New Sheet
-                    </h2>
-
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <Input
-                            placeholder="Sheet name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 text-sm sm:text-base"
-                        />
-                        <Button
-                            onClick={createSheet}
-                            disabled={addLoading}
-                            className="w-full lg:w-auto rounded-2xl text-black bg-emerald-500 hover:bg-emerald-400 font-semibold active:scale-[0.98]"
-                        >
-                            {addLoading ? (
-                                <>
-                                    <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Creating...
-                                </>
-                            ) : (
-                                "Create"
-                            )}
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Sheets List */}
-                <div className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6 shadow-2xl">
-
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg sm:text-xl font-semibold">
-                            All Sheets
-                        </h2>
-                        <span className="text-xs sm:text-sm text-slate-400">
-                        {sheets.length} total
-                    </span>
-                    </div>
-
-                    {/* MOBILE VIEW */}
-                    <div className="space-y-3 sm:hidden">
-                        {sheets.map((sheet) => (
-                            <div
-                                key={sheet.id}
-                                className="rounded-2xl border border-white/10 bg-white/5 p-4"
-                            >
-                                {editingId === sheet.id ? (
-                                    <>
-                                        <Input
-                                            value={editName}
-                                            onChange={(e) =>
-                                                setEditName(e.target.value)
-                                            }
-                                            className="mb-3 bg-white/5 border-white/10 text-white"
-                                        />
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() =>
-                                                    saveEdit(sheet.id)
-                                                }
-                                                className="flex-1 bg-emerald-500 hover:bg-emerald-400"
-                                            >
-                                                Save
-                                            </Button>
-
-                                            <Button
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setEditingId(null)
-                                                }
-                                                className="flex-1 border-white/15 bg-white/5 hover:bg-white/10 text-white"
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div
-                                            onClick={() =>
-                                                router.push(`/sheet/${sheet.id}`)
-                                            }
-                                            className="font-semibold text-base mb-3 cursor-pointer hover:text-emerald-400"
-                                        >
-                                            {sheet.name}
-                                        </div>
-
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() =>
-                                                    startEdit(sheet)
-                                                }
-                                                className="flex-1 border-white/15 bg-white/5 hover:bg-white/10 text-white"
-                                            >
-                                                Edit
-                                            </Button>
-
-                                            <Button
-                                                variant="destructive"
-                                                onClick={() =>
-                                                    deleteSheet(sheet.id)
-                                                }
-                                                className="flex-1"
-                                            >
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* DESKTOP TABLE */}
-                    <div className="hidden sm:block">
-                        <Table className="w-full">
-                            <TableHeader>
-                                <TableRow className="border-white/10 hover:bg-transparent">
-                                    <TableHead className="text-slate-400">ID</TableHead>
-                                    <TableHead className="text-slate-400">Name</TableHead>
-                                    <TableHead className="text-slate-400 text-right">
-                                        Actions
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-
-                            <TableBody>
-                                {sheets.map((sheet) => (
-                                    <TableRow
-                                        key={sheet.id}
-                                        className="border-white/10 hover:bg-white/5 transition"
-                                    >
-                                        {editingId === sheet.id ? (
-                                            <>
-                                                <TableCell>{sheet.id}</TableCell>
-
-                                                <TableCell>
-                                                    <Input
-                                                        value={editName}
-                                                        onChange={(e) =>
-                                                            setEditName(e.target.value)
-                                                        }
-                                                        className="bg-white/5 border-white/10 text-white"
-                                                    />
-                                                </TableCell>
-
-                                                <TableCell>
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            onClick={() =>
-                                                                saveEdit(sheet.id)
-                                                            }
-                                                            className="bg-emerald-500 hover:bg-emerald-400"
-                                                        >
-                                                            Save
-                                                        </Button>
-
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() =>
-                                                                setEditingId(null)
-                                                            }
-                                                            className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
-                                                        >
-                                                            Cancel
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <TableCell className="text-slate-400">
-                                                    {sheet.id}
-                                                </TableCell>
-
-                                                <TableCell
-                                                    onClick={() =>
-                                                        router.push(`/sheet/${sheet.id}`)
-                                                    }
-                                                    className="cursor-pointer font-medium hover:text-emerald-400 transition"
-                                                >
-                                                    {sheet.name}
-                                                </TableCell>
-
-                                                <TableCell>
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() =>
-                                                                startEdit(sheet)
-                                                            }
-                                                            className="border-white/15 bg-white/5 hover:bg-white/10 text-white"
-                                                        >
-                                                            Edit
-                                                        </Button>
-
-                                                        <Button
-                                                            variant="destructive"
-                                                            onClick={() =>
-                                                                deleteSheet(sheet.id)
-                                                            }
-                                                        >
-                                                            Delete
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </>
-                                        )}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </div>
+                <CreateSheetForm
+                    onCreate={createSheet}
+                    isLoading={addLoading}
+                />
+                <SheetList
+                    sheets={sheets}
+                    editingId={editingId}
+                    editName={editName}
+                    setEditName={setEditName}
+                    setEditingId={setEditingId}
+                    onSaveEdit={saveEdit}
+                    onDelete={deleteSheet}
+                    onStartEdit={startEdit}
+                />
             </section>
         </main>
     );

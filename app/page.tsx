@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SheetPage from "@/app/sheet/page";
+import { authFetch } from "@/app/helpers/helpers";
 
 export default function Home() {
 
@@ -10,9 +11,21 @@ export default function Home() {
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        const checkToken = () => {
-            setHasToken(!!token);
-            setReady(true);
+        const checkToken = async () => {
+            try {
+                // Perform a lightweight check to see if the token is still valid
+                await authFetch("sheets/me");
+                setHasToken(!!token);
+            } catch (error: any) {
+                if (error.message.includes("Session expired")) {
+                    setHasToken(false);
+                } else {
+                    // For other errors, we still treat as no token to be safe
+                    setHasToken(false);
+                }
+            } finally {
+                setReady(true);
+            }
         }
         checkToken();
     }, []);
