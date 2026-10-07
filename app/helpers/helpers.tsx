@@ -28,10 +28,17 @@ export async function authFetch(
     // token expired / unauthorized
     if (response.status === 401) {
         localStorage.removeItem("token");
+        if (typeof window !== "undefined") {
+            window.location.href = "/login";
+        }
         throw new Error("Session expired. Please login again.");
     }
 
     if (response.status === 403) {
+        localStorage.removeItem("token");
+        if (typeof window !== "undefined") {
+            window.location.href = "/login";
+        }
         throw new Error("Access denied. Please login again.");
     }
 
