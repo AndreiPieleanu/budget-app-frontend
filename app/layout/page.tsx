@@ -21,12 +21,16 @@ export default function Header() {
     }, []);
 
     const handleLogout = async () => {
-        await createLog(
-            `User logged out.`
-        );
-        localStorage.removeItem("token");
-        setToken(null);
-        router.push("/login");
+        try {
+            await createLog(`User logged out.`);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            // Always clear the session, even if the log request fails.
+            localStorage.removeItem("token");
+            setToken(null);
+            router.push("/login");
+        }
     };
 
     return (

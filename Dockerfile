@@ -8,9 +8,9 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Install dependencies
+# Install exact versions from the lockfile
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -18,12 +18,15 @@ COPY . .
 # Build the Next.js application
 RUN npm run build
 
+# Drop dev dependencies so they don't ship in the runtime image
+RUN npm prune --omit=dev
+
 # Production stage
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs

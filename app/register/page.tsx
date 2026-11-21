@@ -11,16 +11,30 @@ export default function RegisterPage() {
     const router = useRouter();
 
     const handleRegister = async () => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email, password }),
-        });
+        if (!email || !password) {
+            setMessage("Please enter an email and a password.");
+            return;
+        }
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email, password }),
+            });
 
-        const text = await res.text();
-        setMessage(text);
+            const text = await res.text();
+            // Keep the backend's message only if it's short plain text, not an error page or stack trace.
+            const isShortText = text.length > 0 && text.length <= 200 && !text.trimStart().startsWith("<");
+            if (res.ok) {
+                setMessage(isShortText ? text : "Registration successful. Check your email to confirm your account.");
+            } else {
+                setMessage(isShortText ? text : "Registration failed. Please try again.");
+            }
+        } catch {
+            setMessage("Something went wrong. Please try again.");
+        }
         // await createLog(
         //     `User ${email} started registering.`
         // );

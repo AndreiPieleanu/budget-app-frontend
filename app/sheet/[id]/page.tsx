@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
-import { authFetch, createLog } from "@/app/helpers/helpers";
+import { authFetch, createLog, getCurrentUserId } from "@/app/helpers/helpers";
 import { closeSnackbar, useSnackbar } from "notistack";
 import TransactionForm from "@/components/sheet-details/TransactionForm";
 import CurrencyControls from "@/components/sheet-details/CurrencyControls";
@@ -45,7 +45,9 @@ type LogsEvent = {
 }
 
 export default function SheetPage() {
-    const { id } = useParams();
+    const params = useParams();
+    // Only accept a numeric sheet ID, so a crafted URL can't redirect API calls to other paths.
+    const id = typeof params.id === "string" && /^\d+$/.test(params.id) ? params.id : null;
     const today = new Date().toISOString().split("T")[0];
 
     const [sources, setSources] = useState<Source[]>([]);
@@ -71,7 +73,12 @@ export default function SheetPage() {
     const loadLogs = async () => {
         setLoadingLogs(true);
         try {
-            const res = await authFetch(`logs/user/${1}`);
+            const userId = getCurrentUserId();
+            if (userId === null) {
+                enqueueSnackbar("Could not identify the current user.", { variant: "error" });
+                return;
+            }
+            const res = await authFetch(`logs/user/${userId}`);
             const data = await res.json();
             setLogs(data);
         } finally {
@@ -80,6 +87,7 @@ export default function SheetPage() {
     };
 
     useEffect(() => {
+        if (!id) return;
         const loadPage = async () => {
             setLoadingSources(true)
             try {
@@ -301,6 +309,14 @@ export default function SheetPage() {
             enqueueSnackbar(`An error occurred! ${e}`, { variant: "error" });
         }
     };
+
+    if (!id) {
+        return (
+            <main className="min-h-screen grid place-items-center bg-slate-950 text-sm text-slate-300">
+                Sheet not found.
+            </main>
+        );
+    }
 
     if (loadingSources) {
         return (

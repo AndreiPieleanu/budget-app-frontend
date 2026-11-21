@@ -13,7 +13,7 @@ export async function authFetch(
     const config: RequestInit = {
         method: options.method || "GET",
         headers: {
-            Authorization: `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {}),
         },
     };
@@ -47,6 +47,21 @@ export async function authFetch(
     }
 
     return response;
+}
+
+// Reads the user ID from the stored JWT's payload (the backend puts it in the
+// "userId" claim). Used only to build request paths: the backend still verifies
+// the token's signature and checks that the ID matches it.
+export function getCurrentUserId(): number | null {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+        const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const { userId } = JSON.parse(atob(payload));
+        return Number.isInteger(userId) ? userId : null;
+    } catch {
+        return null;
+    }
 }
 
 export async function createLog(

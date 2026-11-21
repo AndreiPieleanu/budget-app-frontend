@@ -70,7 +70,7 @@ export default function LoginPage() {
                 {/* Form */}
                 <div className="space-y-3 sm:space-y-4">
                     <input
-                        autoComplete={email}
+                        autoComplete="email"
                         className="w-full rounded-2xl bg-black/20 border border-white/10 px-4 py-3 text-sm sm:text-base outline-none focus:border-emerald-400"
                         placeholder="Email"
                         value={email}
@@ -78,7 +78,7 @@ export default function LoginPage() {
                     />
 
                     <input
-                        autoComplete={password}
+                        autoComplete="current-password"
                         type="password"
                         className="w-full rounded-2xl bg-black/20 border border-white/10 px-4 py-3 text-sm sm:text-base outline-none focus:border-emerald-400"
                         placeholder="Password"

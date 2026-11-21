@@ -14,7 +14,7 @@ export default function ConfirmPageInner() {
     useEffect(() => {
         if (!token) return;
 
-        fetch(`${API}/auth/confirm?token=${token}`)
+        fetch(`${API}/auth/confirm?token=${encodeURIComponent(token)}`)
             .then(res => res.text())
             .then(data => setMessage(`${data}. You can close this window now.`))
             .catch(() => setMessage("Error confirming account"));
