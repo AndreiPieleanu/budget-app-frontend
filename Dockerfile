@@ -3,11 +3,6 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Build-time argument for the API URL.
-# This MUST be passed during build (e.g., --build-arg NEXT_PUBLIC_API_URL=...)
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
 # Install exact versions from the lockfile
 COPY package*.json ./
 RUN npm ci
@@ -27,6 +22,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# BACKEND_URL (and optionally PROXY_SHARED_SECRET) are read at runtime by proxy.ts.
 
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs

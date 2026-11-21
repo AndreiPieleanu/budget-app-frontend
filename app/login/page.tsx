@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {useRouter} from "next/navigation";
-import {createLog} from "@/app/helpers/helpers";
+import { API, notifyAuthChanged } from "@/app/helpers/helpers";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -21,8 +21,9 @@ export default function LoginPage() {
         }
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+            const res = await fetch(`${API}/auth/login`, {
                 method: "POST",
+                credentials: "same-origin",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -30,16 +31,16 @@ export default function LoginPage() {
             });
 
             if (!res.ok) {
-                setMessage("Login failed");
+                setMessage(
+                    res.status === 429 ? "Too many attempts. Please wait a few minutes and try again."
+                    : res.status === 403 ? "Please confirm your email address before logging in."
+                    : "Login failed"
+                );
                 return;
             }
 
-            const data = await res.json();
-            localStorage.setItem("token", data.token);
-            window.dispatchEvent(new Event("authChanged"));
-            // await createLog(
-            //     `User logged in successfully.`
-            // );
+            // The session cookie was set by the response; tell the header to refresh.
+            notifyAuthChanged();
             router.push("/");
         } catch (e) {
             setMessage("Something went wrong");

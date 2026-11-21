@@ -3,32 +3,30 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/ui/logo";
-import {createLog} from "@/app/helpers/helpers";
+import { isLoggedIn, logout } from "@/app/helpers/helpers";
 
 export default function Header() {
-    const [token, setToken] = useState<string | null>(null);
+    const [loggedIn, setLoggedIn] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        const updateToken = () => {
-            setToken(localStorage.getItem("token"));
+        const updateSession = () => {
+            isLoggedIn().then(setLoggedIn);
         };
 
-        updateToken();
+        updateSession();
 
-        window.addEventListener("authChanged", updateToken);
-        return () => window.removeEventListener("authChanged", updateToken);
+        window.addEventListener("authChanged", updateSession);
+        return () => window.removeEventListener("authChanged", updateSession);
     }, []);
 
     const handleLogout = async () => {
         try {
-            await createLog(`User logged out.`);
+            await logout();
         } catch (e) {
             console.error(e);
         } finally {
-            // Always clear the session, even if the log request fails.
-            localStorage.removeItem("token");
-            setToken(null);
+            setLoggedIn(false);
             router.push("/login");
         }
     };
@@ -38,7 +36,7 @@ export default function Header() {
             <Logo/>
 
             {/* Action */}
-            {token ? (
+            {loggedIn ? (
                 <button
                     onClick={handleLogout}
                     className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 transition text-sm sm:text-base active:scale-[0.98]"

@@ -1,4 +1,12 @@
-const API = process.env.NEXT_PUBLIC_API_URL;
+// All API calls go to this app's own origin. proxy.ts forwards /api/* to the backend, so the auth cookie
+// (HttpOnly, set by the backend) is a first-party cookie: scripts can't read it and browsers that block
+// third-party cookies still send it.
+export const API = "/api";
+
+// Earlier versions kept the JWT in localStorage. Remove any leftover copy so it can't be read by scripts.
+if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+}
 
 export async function authFetch(
     url: string,
@@ -8,12 +16,10 @@ export async function authFetch(
         headers?: Record<string, string>;
     } = {}
 ) {
-    const token = localStorage.getItem("token");
-
     const config: RequestInit = {
         method: options.method || "GET",
+        credentials: "same-origin",
         headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {}),
         },
     };
@@ -25,9 +31,9 @@ export async function authFetch(
 
     const response = await fetch(`${API}/${url}`, config);
 
-    // token expired / unauthorized
+    // Session missing, expired or revoked.
     if (response.status === 401) {
-        localStorage.removeItem("token");
+        notifyAuthChanged();
         if (typeof window !== "undefined") {
             window.location.href = "/login";
         }
@@ -35,7 +41,7 @@ export async function authFetch(
     }
 
     if (response.status === 403) {
-        localStorage.removeItem("token");
+        notifyAuthChanged();
         if (typeof window !== "undefined") {
             window.location.href = "/login";
         }
@@ -49,29 +55,34 @@ export async function authFetch(
     return response;
 }
 
-// Reads the user ID from the stored JWT's payload (the backend puts it in the
-// "userId" claim). Used only to build request paths: the backend still verifies
-// the token's signature and checks that the ID matches it.
-export function getCurrentUserId(): number | null {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
+// Asks the backend who is logged in. The token itself is in an HttpOnly cookie, so the browser can't
+// read it; the backend verifies the cookie and returns the user id, or 403 when there is no valid session.
+export async function getCurrentUserId(): Promise<number | null> {
     try {
-        const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-        const { userId } = JSON.parse(atob(payload));
-        return Number.isInteger(userId) ? userId : null;
+        const res = await fetch(`${API}/auth/me`, { method: "POST", credentials: "same-origin" });
+        if (!res.ok) return null;
+        const id = await res.json();
+        return Number.isInteger(id) ? id : null;
     } catch {
         return null;
     }
 }
 
-export async function createLog(
-    message: string,
-) {
-    await authFetch("logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: {
-            message,
-        },
-    });
+export async function isLoggedIn(): Promise<boolean> {
+    return (await getCurrentUserId()) !== null;
+}
+
+// Revokes the session on the server and clears the cookie.
+export async function logout(): Promise<void> {
+    try {
+        await fetch(`${API}/auth/logout`, { method: "POST", credentials: "same-origin" });
+    } finally {
+        notifyAuthChanged();
+    }
+}
+
+export function notifyAuthChanged() {
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("authChanged"));
+    }
 }

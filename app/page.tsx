@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SheetPage from "@/app/sheet/page";
-import { authFetch } from "@/app/helpers/helpers";
+import { isLoggedIn } from "@/app/helpers/helpers";
 
 export default function Home() {
 
@@ -10,24 +10,9 @@ export default function Home() {
     const [hasToken, setHasToken] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        const checkToken = async () => {
-            try {
-                // Perform a lightweight check to see if the token is still valid
-                await authFetch("sheets/me");
-                setHasToken(!!token);
-            } catch (error: any) {
-                if (error.message.includes("Session expired")) {
-                    setHasToken(false);
-                } else {
-                    // For other errors, we still treat as no token to be safe
-                    setHasToken(false);
-                }
-            } finally {
-                setReady(true);
-            }
-        }
-        checkToken();
+        isLoggedIn()
+            .then(setHasToken)
+            .finally(() => setReady(true));
     }, []);
 
     if (!ready) {
@@ -123,7 +108,7 @@ export default function Home() {
                             />
                             <Card
                                 title="Secure Access"
-                                text="Simple token login with protected routes."
+                                text="Secure cookie-based sessions with protected routes."
                             />
                         </div>
                     </div>

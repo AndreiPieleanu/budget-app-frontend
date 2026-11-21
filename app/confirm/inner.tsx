@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { API } from "@/app/helpers/helpers";
 
 export default function ConfirmPageInner() {
     const searchParams = useSearchParams();

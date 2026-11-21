@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {useRouter} from "next/navigation";
-import {createLog} from "@/app/helpers/helpers";
+import { API } from "@/app/helpers/helpers";
 
 export default function RegisterPage() {
     const [email, setEmail] = useState("");
@@ -16,7 +16,7 @@ export default function RegisterPage() {
             return;
         }
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
+            const res = await fetch(`${API}/auth/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -35,9 +35,6 @@ export default function RegisterPage() {
         } catch {
             setMessage("Something went wrong. Please try again.");
         }
-        // await createLog(
-        //     `User ${email} started registering.`
-        // );
     };
 
     return (

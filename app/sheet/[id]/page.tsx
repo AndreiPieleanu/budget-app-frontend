@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
-import { authFetch, createLog, getCurrentUserId } from "@/app/helpers/helpers";
+import { authFetch, getCurrentUserId } from "@/app/helpers/helpers";
 import { closeSnackbar, useSnackbar } from "notistack";
 import TransactionForm from "@/components/sheet-details/TransactionForm";
 import CurrencyControls from "@/components/sheet-details/CurrencyControls";
@@ -73,7 +73,7 @@ export default function SheetPage() {
     const loadLogs = async () => {
         setLoadingLogs(true);
         try {
-            const userId = getCurrentUserId();
+            const userId = await getCurrentUserId();
             if (userId === null) {
                 enqueueSnackbar("Could not identify the current user.", { variant: "error" });
                 return;
@@ -130,9 +130,6 @@ export default function SheetPage() {
                     sheetId: Number(id),
                 },
             });
-            await createLog(
-                `Added ${data.type.toLowerCase()} source '${data.description}' to sheet '${sheetName}' with estimated amount ${data.amount} ${data.currency} between ${data.possibleStartDate} and ${data.possibleEndDate}.`
-            ).catch(console.error);
 
             const created = await res.json();
             setSources(prev => [...prev, created]);
@@ -156,9 +153,6 @@ export default function SheetPage() {
             await authFetch(`sources/${sourceId}`, {
                 method: "DELETE",
             });
-            await createLog(
-                `Deleted source '${foundSource.description}' from sheet '${sheetName}'.`
-            ).catch(console.error);
             enqueueSnackbar("Item deleted", {
                 variant: "success",
                 action: (snackbarId) => (
@@ -178,9 +172,6 @@ export default function SheetPage() {
                                     possibleEndDate: foundSource.possibleEndDate
                                 },
                             });
-                            await createLog(
-                                `Restored former deleted source '${foundSource.description}' back to sheet '${sheetName}'.`
-                            ).catch(console.error);
                             const restored = await res.json();
                             setSources((prev) => [...prev, restored]);
                             closeSnackbar(snackbarId);
@@ -239,12 +230,6 @@ export default function SheetPage() {
                     amount: Number(editValues.amount),
                 },
             });
-            await createLog(
-                `Updated source '${foundSource.description}' in sheet '${sheetName}':
-                amount ${foundSource.amount} ${foundSource.currency} -> ${editValues.amount} ${editValues.currency},
-                date range ${foundSource.possibleStartDate} - ${foundSource.possibleEndDate}
-                -> ${editValues.possibleStartDate} - ${editValues.possibleEndDate}.`
-            ).catch(console.error);
 
             enqueueSnackbar("Item updated", {
                 variant: "success",
@@ -260,9 +245,6 @@ export default function SheetPage() {
                                     },
                                 },
                             );
-                            await createLog(
-                                `Restored source '${foundSource.description}' in sheet '${sheetName}' back to its original state: amount ${foundSource.amount} ${foundSource.currency}, date range ${foundSource.possibleStartDate} - ${foundSource.possibleEndDate}.`
-                            ).catch(console.error);
                             const restored = await res.json();
                             setSources((prev) =>
                                 prev.map((s) => (s.id === sourceId ? restored : s))

@@ -3,13 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8080
     container_name: eurowise-frontend
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      # Server-side only: proxy.ts forwards /api/* here over the shared Docker network.
+      - BACKEND_URL=http://eurowise-backend:8080
     networks:
       - backend_network
 
