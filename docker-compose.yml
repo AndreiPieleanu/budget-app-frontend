@@ -9,6 +9,10 @@ services:
     environment:
       # Server-side only: proxy.ts forwards /api/* here over the shared Docker network.
       - BACKEND_URL=http://eurowise-backend:8080
+      # Reverse proxies you control in front of this container. 0 = clients reach Next directly, so their IP
+      # can't be trusted and isn't forwarded (the backend then rate-limits all visitors as one client).
+      # Put nginx/Caddy in front and set this to 1 (with PROXY_SHARED_SECRET) for per-visitor limits.
+      - TRUSTED_PROXY_HOPS=0
     networks:
       - backend_network
 

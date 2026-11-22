@@ -22,7 +22,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# BACKEND_URL (and optionally PROXY_SHARED_SECRET) are read at runtime by proxy.ts.
+# BACKEND_URL (and optionally PROXY_SHARED_SECRET, TRUSTED_PROXY_HOPS) are read at runtime by proxy.ts.
 
 # Create a non-root user for security
 RUN addgroup --system --gid 1001 nodejs
