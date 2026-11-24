@@ -15,10 +15,26 @@ export default function Home() {
             .finally(() => setReady(true));
     }, []);
 
+    // While the session check runs (it can take a while when the backend is waking up), show the app's
+    // name on the same dark background as the landing page instead of a blank "Loading..." screen.
     if (!ready) {
         return (
-            <main className="min-h-screen grid place-items-center text-sm text-slate-500">
-                Loading...
+            <main className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-white grid place-items-center px-4">
+                <div className="flex flex-col items-center gap-5 text-center">
+                    <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 px-5 py-3 bg-white/5">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-emerald-500/20 grid place-items-center font-bold text-emerald-400">
+                            $€
+                        </div>
+                        <span className="text-2xl sm:text-3xl font-semibold tracking-wide">
+                            EuroWise
+                        </span>
+                    </div>
+                    <span
+                        aria-label="Loading"
+                        role="status"
+                        className="h-6 w-6 border-2 border-white/20 border-t-emerald-400 rounded-full animate-spin"
+                    />
+                </div>
             </main>
         );
     }
